@@ -11,5 +11,9 @@
       "src": "/(.*)",
       "dest": "api/index.ts"
     }
-  ]
+  ],
+  "env": {
+    "DATABASE_URL": "postgresql://neondb_owner:npg_30HTqynjvtIs@ep-fancy-mode-za6l9zos.c-2.eu-west-2.aws.neon.tech/neondb?sslmode=require",
+    "JWT_SECRET": "cricket_super_secret_jwt_key_2026"
+  }
 }
