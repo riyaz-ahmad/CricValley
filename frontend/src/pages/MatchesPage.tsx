@@ -3,42 +3,36 @@ import { Link } from 'react-router-dom';
 import { Calendar, Activity, Trophy, Circle, CheckCircle, Clock, Award } from 'lucide-react';
 import { Match } from '../types';
 import { apiRequest } from '../services/api';
-import { useSocket } from '../context/SocketContext';
+import { storage } from '../services/storage';
 
 export const MatchesPage: React.FC = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'LIVE' | 'UPCOMING' | 'COMPLETED'>('ALL');
   const [loading, setLoading] = useState(true);
-  const { socket } = useSocket();
 
   const fetchMatches = async () => {
     setLoading(true);
+    let data: Match[] = [];
     try {
       let url = '/matches';
       if (statusFilter !== 'ALL') url += `?status=${statusFilter}`;
-      const data = await apiRequest<Match[]>(url);
-      setMatches(data);
+      data = await apiRequest<Match[]>(url);
     } catch (err) {
-      console.error(err);
+      data = storage.getMatches();
+      if (statusFilter !== 'ALL') {
+        data = data.filter((m) => m.status === statusFilter);
+      }
     } finally {
+      setMatches(data);
       setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchMatches();
+    const interval = setInterval(fetchMatches, 3000);
+    return () => clearInterval(interval);
   }, [statusFilter]);
-
-  useEffect(() => {
-    if (!socket) return;
-    const handleUpdate = () => fetchMatches();
-    socket.on('match_updated', handleUpdate);
-    socket.on('match_status_changed', handleUpdate);
-    return () => {
-      socket.off('match_updated', handleUpdate);
-      socket.off('match_status_changed', handleUpdate);
-    };
-  }, [socket]);
 
   const getStageTag = (stage: string) => {
     switch (stage) {
@@ -59,9 +53,9 @@ export const MatchesPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
         <div>
           <h1 className="text-3xl font-heading font-extrabold text-white flex items-center gap-3">
-            <Calendar className="w-8 h-8 text-emerald-400" /> Matches, Fixtures & Winners
+            <Calendar className="w-8 h-8 text-emerald-400" /> Matches, Fixtures & Scorecards
           </h1>
-          <p className="text-slate-400 text-sm mt-1">Match stage tags (Semi-Finals, Finals), live scores, and Man of the Match awards</p>
+          <p className="text-slate-400 text-sm mt-1">Live scoreboards, toss decisions, stage tags, and Man of the Match awards</p>
         </div>
 
         {/* Filter Tabs */}
@@ -73,7 +67,7 @@ export const MatchesPage: React.FC = () => {
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                 statusFilter === s
                   ? s === 'LIVE'
-                    ? 'bg-amber-600 text-white shadow-lg shadow-amber-500/30 animate-pulse'
+                    ? 'bg-amber-600 text-white shadow-lg shadow-amber-500/30 animate-pulse font-black'
                     : 'bg-emerald-500 text-slate-950 font-black'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800'
               }`}
@@ -89,7 +83,7 @@ export const MatchesPage: React.FC = () => {
 
       {/* Matches Grid */}
       {loading ? (
-        <div className="py-20 text-center text-slate-400 animate-pulse">Loading fixtures...</div>
+        <div className="py-20 text-center text-slate-400 animate-pulse font-bold">Loading match scoreboards...</div>
       ) : matches.length === 0 ? (
         <div className="py-20 text-center text-slate-500">No matches found for filter "{statusFilter}".</div>
       ) : (
@@ -116,7 +110,7 @@ export const MatchesPage: React.FC = () => {
                     <span className="font-semibold text-slate-400">Match #{m.matchNumber}</span>
                   </div>
                   <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase flex items-center gap-1 ${
                       isLive
                         ? 'bg-amber-500 text-slate-950 animate-pulse'
                         : m.status === 'COMPLETED'
@@ -124,9 +118,17 @@ export const MatchesPage: React.FC = () => {
                         : 'bg-slate-800 text-slate-300'
                     }`}
                   >
-                    {isLive ? 'ONGOING' : m.status}
+                    {isLive && <Circle className="w-2 h-2 fill-current text-red-600" />}
+                    {isLive ? 'LIVE ONGOING' : m.status}
                   </span>
                 </div>
+
+                {/* 🪙 Toss Banner */}
+                {m.tossWinnerId && (
+                  <div className="p-2.5 bg-slate-950 border border-slate-800/80 rounded-xl text-[11px] font-semibold text-amber-300">
+                    🪙 <strong>{m.tossWinnerId === m.homeTeamId ? m.homeTeam.name : m.awayTeam.name}</strong> won toss & elected to <strong>{m.tossDecision || 'BAT'}</strong> first.
+                  </div>
+                )}
 
                 {/* Team Scores Display */}
                 <div className="space-y-2">
@@ -184,7 +186,7 @@ export const MatchesPage: React.FC = () => {
                     to={`/matches/${m.id}`}
                     className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black rounded-xl shadow-md transition-all shrink-0"
                   >
-                    Scorecard →
+                    View Scorecard →
                   </Link>
                 </div>
               </div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Trophy, Calendar, MapPin, CheckCircle2, Activity, ArrowLeft, Award, Flame, Circle } from 'lucide-react';
-import { Match } from '../types';
+import { Trophy, Calendar, MapPin, CheckCircle2, Activity, ArrowLeft, Award, Flame, Circle, Zap, UserCheck } from 'lucide-react';
+import { Match, Player } from '../types';
 import { apiRequest } from '../services/api';
 import { storage } from '../services/storage';
 import { BallTracker } from '../components/BallTracker';
@@ -35,9 +35,53 @@ export const LiveMatchPage: React.FC = () => {
     return <div className="py-20 text-center text-slate-400 animate-pulse font-bold">Loading live match scoreboard...</div>;
   }
 
+  const allPlayers = storage.getPlayers();
   const inn1 = match.innings?.find((i) => i.inningNumber === 1);
   const inn2 = match.innings?.find((i) => i.inningNumber === 2);
   const activeInnings = (inn2 && !inn2.isCompleted ? inn2 : inn1) || inn1;
+
+  // Calculate batter & bowler stats dynamically from activeInnings.balls
+  const playerStatsMap: Record<string, { runs: number; balls: number; fours: number; sixes: number }> = {};
+  const bowlerStatsMap: Record<string, { balls: number; runsConceded: number; wickets: number }> = {};
+
+  if (activeInnings && activeInnings.balls) {
+    activeInnings.balls.forEach((b) => {
+      if (b.strikerId) {
+        if (!playerStatsMap[b.strikerId]) playerStatsMap[b.strikerId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
+        playerStatsMap[b.strikerId].runs += b.runs;
+        if (b.extraType !== 'WIDE') playerStatsMap[b.strikerId].balls += 1;
+        if (b.runs === 4) playerStatsMap[b.strikerId].fours += 1;
+        if (b.runs === 6) playerStatsMap[b.strikerId].sixes += 1;
+      }
+      if (b.bowlerId) {
+        if (!bowlerStatsMap[b.bowlerId]) bowlerStatsMap[b.bowlerId] = { balls: 0, runsConceded: 0, wickets: 0 };
+        const isLegal = b.extraType !== 'WIDE' && b.extraType !== 'NO_BALL';
+        if (isLegal) bowlerStatsMap[b.bowlerId].balls += 1;
+        let wide = b.extraType === 'WIDE' ? 1 : 0;
+        let noBall = b.extraType === 'NO_BALL' ? 1 : 0;
+        bowlerStatsMap[b.bowlerId].runsConceded += b.runs + wide + noBall;
+        if (b.isWicket) bowlerStatsMap[b.bowlerId].wickets += 1;
+      }
+    });
+  }
+
+  const lastBall = activeInnings?.balls && activeInnings.balls.length > 0 ? activeInnings.balls[activeInnings.balls.length - 1] : null;
+  const strikerId = lastBall?.strikerId;
+  const nonStrikerId = lastBall?.nonStrikerId;
+  const bowlerId = lastBall?.bowlerId;
+
+  const strikerPlayer = allPlayers.find((p) => p.id === strikerId);
+  const nonStrikerPlayer = allPlayers.find((p) => p.id === nonStrikerId);
+  const activeBowlerPlayer = allPlayers.find((p) => p.id === bowlerId);
+
+  const strikerStats = strikerId ? playerStatsMap[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : null;
+  const nonStrikerStats = nonStrikerId ? playerStatsMap[nonStrikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : null;
+  const activeBowlerStats = bowlerId ? bowlerStatsMap[bowlerId] || { balls: 0, runsConceded: 0, wickets: 0 } : null;
+
+  // Run rate calculations
+  const totalOvers = activeInnings ? activeInnings.overs : 0;
+  const totalOversDecimal = Math.floor(totalOvers) + (totalOvers % 1) * 10 / 6;
+  const currentRunRate = totalOversDecimal > 0 && activeInnings ? (activeInnings.totalRuns / totalOversDecimal).toFixed(2) : '0.00';
 
   const getStageTag = (stage: string) => {
     switch (stage) {
@@ -55,12 +99,13 @@ export const LiveMatchPage: React.FC = () => {
   const tag = getStageTag(match.stage);
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <Link to="/matches" className="inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:underline font-semibold">
         <ArrowLeft className="w-4 h-4" /> Back to All Matches
       </Link>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl space-y-6">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+        {/* Match Stage & Live Status Header */}
         <div className="flex flex-wrap items-center justify-between border-b border-slate-800 pb-4 text-xs gap-2">
           <div className="flex items-center gap-2">
             <span className={`px-3 py-1 rounded text-xs uppercase ${tag.bg}`}>
@@ -82,27 +127,27 @@ export const LiveMatchPage: React.FC = () => {
           </span>
         </div>
 
-        {/* Toss Banner */}
+        {/* 🪙 Toss Information Banner */}
         {match.tossWinnerId && (
-          <div className="p-3 bg-slate-950 border border-slate-800 rounded-2xl flex items-center gap-2 text-xs font-semibold text-amber-300">
-            <span className="text-sm">🪙</span>
+          <div className="p-3.5 bg-slate-950 border border-slate-800/80 rounded-2xl flex items-center gap-2.5 text-xs font-semibold text-amber-300 shadow-sm">
+            <span className="text-base">🪙</span>
             <span>
               <strong>{match.tossWinnerId === match.homeTeamId ? match.homeTeam.name : match.awayTeam.name}</strong> won the toss and elected to <strong>{match.tossDecision || 'BAT'}</strong> first.
             </span>
           </div>
         )}
 
-        {/* Live Scorecards */}
+        {/* Main Teams & Live Score Display */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className={`border p-6 rounded-2xl space-y-2 text-center transition-all ${
+          <div className={`border p-6 rounded-3xl space-y-2 text-center transition-all ${
             activeInnings?.battingTeamId === match.homeTeamId
-              ? 'bg-gradient-to-b from-slate-950 to-emerald-950/40 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
+              ? 'bg-gradient-to-b from-slate-950 to-emerald-950/40 border-emerald-500/50 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/20'
               : 'bg-slate-950 border-slate-800'
           }`}>
-            <div className="w-12 h-12 rounded-full bg-emerald-950 text-emerald-400 font-bold flex items-center justify-center mx-auto text-sm border border-emerald-800">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-950 text-emerald-400 font-black flex items-center justify-center mx-auto text-base border border-emerald-800 shadow-md">
               {match.homeTeam.shortName}
             </div>
-            <div className="font-heading font-extrabold text-white text-lg">{match.homeTeam.name}</div>
+            <div className="font-heading font-black text-white text-lg">{match.homeTeam.name}</div>
             <div className="text-4xl font-mono font-black text-emerald-400">
               {inn1 ? `${inn1.totalRuns}/${inn1.wickets}` : '-'}
             </div>
@@ -111,15 +156,15 @@ export const LiveMatchPage: React.FC = () => {
             </div>
           </div>
 
-          <div className={`border p-6 rounded-2xl space-y-2 text-center transition-all ${
+          <div className={`border p-6 rounded-3xl space-y-2 text-center transition-all ${
             activeInnings?.battingTeamId === match.awayTeamId
-              ? 'bg-gradient-to-b from-slate-950 to-emerald-950/40 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
+              ? 'bg-gradient-to-b from-slate-950 to-emerald-950/40 border-emerald-500/50 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/20'
               : 'bg-slate-950 border-slate-800'
           }`}>
-            <div className="w-12 h-12 rounded-full bg-emerald-950 text-emerald-400 font-bold flex items-center justify-center mx-auto text-sm border border-emerald-800">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-950 text-emerald-400 font-black flex items-center justify-center mx-auto text-sm border border-emerald-800 shadow-md">
               {match.awayTeam.shortName}
             </div>
-            <div className="font-heading font-extrabold text-white text-lg">{match.awayTeam.name}</div>
+            <div className="font-heading font-black text-white text-lg">{match.awayTeam.name}</div>
             <div className="text-4xl font-mono font-black text-emerald-400">
               {inn2 ? `${inn2.totalRuns}/${inn2.wickets}` : '-'}
             </div>
@@ -128,6 +173,95 @@ export const LiveMatchPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* CURRENT LIVE BATTERS & BOWLER SCORECARD PANEL */}
+        {match.status === 'LIVE' && activeInnings && (
+          <div className="space-y-4 bg-slate-950 border border-slate-800 p-5 rounded-3xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2 text-xs">
+              <span className="font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Zap className="w-4 h-4" /> Live Scorecard Details
+              </span>
+              <span className="font-mono text-slate-400 font-semibold">CRR: <strong className="text-white">{currentRunRate}</strong></span>
+            </div>
+
+            {/* Current Batters Table */}
+            <div>
+              <div className="text-[11px] font-bold text-slate-400 uppercase mb-2">Batting Currently:</div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="text-slate-400 border-b border-slate-900 uppercase tracking-wider">
+                      <th className="py-2 px-2">Batter</th>
+                      <th className="py-2 px-2 text-center">R (B)</th>
+                      <th className="py-2 px-2 text-center">4s</th>
+                      <th className="py-2 px-2 text-center">6s</th>
+                      <th className="py-2 px-2 text-right">SR</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-900 font-medium">
+                    {/* Striker */}
+                    {strikerPlayer && (
+                      <tr className="text-white">
+                        <td className="py-2.5 px-2 font-bold text-emerald-400 flex items-center gap-1">
+                          {strikerPlayer.name} <span className="text-amber-400 font-black">*</span>
+                        </td>
+                        <td className="py-2.5 px-2 text-center font-mono font-bold text-white">
+                          {strikerStats?.runs} ({strikerStats?.balls})
+                        </td>
+                        <td className="py-2.5 px-2 text-center font-mono text-slate-300">{strikerStats?.fours}</td>
+                        <td className="py-2.5 px-2 text-center font-mono text-amber-400 font-bold">{strikerStats?.sixes}</td>
+                        <td className="py-2.5 px-2 text-right font-mono text-cyan-400">
+                          {strikerStats && strikerStats.balls > 0 ? ((strikerStats.runs / strikerStats.balls) * 100).toFixed(1) : '0.0'}
+                        </td>
+                      </tr>
+                    )}
+                    {/* Non-Striker */}
+                    {nonStrikerPlayer && (
+                      <tr className="text-slate-300">
+                        <td className="py-2.5 px-2 font-bold text-slate-200">
+                          {nonStrikerPlayer.name}
+                        </td>
+                        <td className="py-2.5 px-2 text-center font-mono font-bold text-white">
+                          {nonStrikerStats?.runs} ({nonStrikerStats?.balls})
+                        </td>
+                        <td className="py-2.5 px-2 text-center font-mono text-slate-300">{nonStrikerStats?.fours}</td>
+                        <td className="py-2.5 px-2 text-center font-mono text-amber-400 font-bold">{nonStrikerStats?.sixes}</td>
+                        <td className="py-2.5 px-2 text-right font-mono text-cyan-400">
+                          {nonStrikerStats && nonStrikerStats.balls > 0 ? ((nonStrikerStats.runs / nonStrikerStats.balls) * 100).toFixed(1) : '0.0'}
+                        </td>
+                      </tr>
+                    )}
+                    {!strikerPlayer && !nonStrikerPlayer && (
+                      <tr>
+                        <td colSpan={5} className="py-3 text-center text-slate-500 italic">No batter statistics recorded yet</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Current Active Bowler */}
+            {activeBowlerPlayer && (
+              <div className="pt-2 border-t border-slate-900">
+                <div className="text-[11px] font-bold text-slate-400 uppercase mb-2">Bowling Currently:</div>
+                <div className="p-3 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-between text-xs font-bold">
+                  <div className="text-white flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                    <span>{activeBowlerPlayer.name}</span>
+                  </div>
+                  <div className="font-mono text-cyan-300 flex items-center gap-3">
+                    <span>
+                      {activeBowlerStats ? `${Math.floor(activeBowlerStats.balls / 6)}.${activeBowlerStats.balls % 6}` : '0.0'} Ov
+                    </span>
+                    <span>{activeBowlerStats?.runsConceded || 0} Runs</span>
+                    <span className="text-red-400 font-black">{activeBowlerStats?.wickets || 0} Wkts</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Live Over Ball Tracker */}
         {activeInnings && activeInnings.balls && activeInnings.balls.length > 0 && (
@@ -140,16 +274,16 @@ export const LiveMatchPage: React.FC = () => {
         {/* Ball Commentary Timeline */}
         {activeInnings && activeInnings.balls && activeInnings.balls.length > 0 && (
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Live Ball Commentary</h4>
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              {[...activeInnings.balls].reverse().slice(0, 10).map((b, idx) => (
-                <div key={b.id || idx} className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl flex items-center justify-between text-xs">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Live Ball Commentary Feed</h4>
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+              {[...activeInnings.balls].reverse().map((b, idx) => (
+                <div key={b.id || idx} className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl flex items-center justify-between text-xs shadow-sm">
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-cyan-400 font-bold">{b.overNumber}.{b.ballNumberInOver}</span>
-                    <span className="text-slate-200">{b.commentary}</span>
+                    <span className="font-mono text-cyan-400 font-bold bg-slate-900 px-2 py-1 rounded border border-slate-800">{b.overNumber}.{b.ballNumberInOver}</span>
+                    <span className="text-slate-200 font-medium">{b.commentary}</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded font-black text-[11px] ${
-                    b.isWicket ? 'bg-red-600 text-white' : b.runs === 6 ? 'bg-amber-500 text-slate-950' : b.runs === 4 ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-300'
+                  <span className={`px-2.5 py-1 rounded-lg font-black text-[11px] shrink-0 ${
+                    b.isWicket ? 'bg-red-600 text-white shadow-md shadow-red-600/30' : b.runs === 6 ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30' : b.runs === 4 ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/30' : 'bg-slate-800 text-slate-300'
                   }`}>
                     {b.isWicket ? 'OUT' : `${b.runs} RUNS`}
                   </span>
@@ -161,7 +295,7 @@ export const LiveMatchPage: React.FC = () => {
 
         {/* Result Summary */}
         {match.resultSummary && (
-          <div className="bg-gradient-to-r from-amber-950 to-orange-950 border border-amber-800/60 p-5 rounded-2xl text-center space-y-1">
+          <div className="bg-gradient-to-r from-amber-950 to-orange-950 border border-amber-800/60 p-5 rounded-2xl text-center space-y-1 shadow-lg">
             <div className="text-xs text-amber-400 uppercase font-bold tracking-wider">Official Match Result</div>
             <div className="text-xl font-heading font-black text-amber-300">🏆 {match.resultSummary}</div>
           </div>
@@ -169,7 +303,7 @@ export const LiveMatchPage: React.FC = () => {
 
         {/* Man of the Match Badge */}
         {match.playerOfTheMatch && (
-          <div className="bg-gradient-to-r from-emerald-950 to-teal-950 border border-emerald-800/60 p-5 rounded-2xl text-center space-y-1">
+          <div className="bg-gradient-to-r from-emerald-950 to-teal-950 border border-emerald-800/60 p-5 rounded-2xl text-center space-y-1 shadow-lg">
             <div className="text-xs text-emerald-400 uppercase font-black tracking-wider flex items-center justify-center gap-1.5">
               <Award className="w-4 h-4 text-emerald-400" /> Player of the Match Award
             </div>
