@@ -1,0 +1,237 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("ADMIN") // ADMIN, SCORER, ORGANIZER
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tournament {
+  id                   String           @id @default(uuid())
+  title                String
+  slug                 String           @unique
+  description          String?
+  format               String           @default("LEAGUE") // LEAGUE, KNOCKOUT, LEAGUE_KNOCKOUT, ROUND_ROBIN
+  overs                Int              @default(20)
+  powerplayOvers       Int              @default(6)
+  ballType             String           @default("Leather") // Leather, Tennis, Synthetic
+  ground               String?
+  city                 String?
+  startDate            DateTime
+  endDate              DateTime
+  registrationDeadline DateTime?
+  entryFee             Float            @default(0)
+  prizePool            String?
+  logoUrl              String?
+  bannerUrl            String?
+  rules                String?
+  contactEmail         String?
+  contactPhone         String?
+  status               String           @default("PUBLISHED") // DRAFT, PUBLISHED, COMPLETED, ARCHIVED
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  teams                TournamentTeam[]
+  matches              Match[]
+  sponsors             Sponsor[]
+  announcements        Announcement[]
+  gallery              Gallery[]
+}
+
+model Team {
+  id          String   @id @default(uuid())
+  name        String
+  shortName   String
+  logoUrl     String?
+  bannerUrl   String?
+  city        String?
+  foundedYear Int?
+  captainName String?
+  viceCaptain String?
+  coachName   String?
+  managerName String?
+  bio         String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  players          Player[]
+  tournamentTeams  TournamentTeam[]
+  homeMatches      Match[]          @relation("HomeTeam")
+  awayMatches      Match[]          @relation("AwayTeam")
+  wonMatches       Match[]          @relation("WinnerTeam")
+  battingInnings   Innings[]        @relation("BattingTeam")
+  bowlingInnings   Innings[]        @relation("BowlingTeam")
+}
+
+model Player {
+  id           String   @id @default(uuid())
+  name         String
+  jerseyNumber Int?
+  role         String   @default("ALL_ROUNDER") // BATSMAN, BOWLER, ALL_ROUNDER, WICKET_KEEPER
+  battingStyle String   @default("Right-Handed") // Right-Handed, Left-Handed
+  bowlingStyle String   @default("Right-Arm Fast") // Right-Arm Fast, Right-Arm Medium, Right-Arm Off-Spin, Left-Arm Fast, Left-Arm Spin
+  photoUrl     String?
+  dob          DateTime?
+  mobile       String?
+  teamId       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  team         Team?       @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  strikedBalls BallEvent[] @relation("Striker")
+  nonStrikedBalls BallEvent[] @relation("NonStriker")
+  bowledBalls  BallEvent[] @relation("Bowler")
+  dismissals   BallEvent[] @relation("DismissedPlayer")
+  fieldedWickets BallEvent[] @relation("Fielder")
+  momMatches   Match[]     @relation("PlayerOfTheMatch")
+}
+
+model TournamentTeam {
+  id           String   @id @default(uuid())
+  tournamentId String
+  teamId       String
+  matchesPlayed Int     @default(0)
+  wins         Int      @default(0)
+  losses       Int      @default(0)
+  ties         Int      @default(0)
+  noResults    Int      @default(0)
+  points       Int      @default(0)
+  netRunRate   Float    @default(0.0)
+  runsScored   Int      @default(0)
+  oversFaced   Float    @default(0.0)
+  runsConceded Int      @default(0)
+  oversBowled  Float    @default(0.0)
+  createdAt    DateTime @default(now())
+
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team         Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, teamId])
+}
+
+model Match {
+  id                 String   @id @default(uuid())
+  tournamentId       String
+  homeTeamId         String
+  awayTeamId         String
+  winnerTeamId       String?
+  playerOfTheMatchId String?
+  matchNumber        Int      @default(1)
+  stage              String   @default("LEAGUE") // LEAGUE, QUARTER_FINAL, SEMI_FINAL, FINAL
+  status             String   @default("UPCOMING") // UPCOMING, LIVE, PAUSED, COMPLETED, CANCELLED
+  scheduledAt        DateTime
+  venue              String?
+  umpire1            String?
+  umpire2            String?
+  scorer             String?
+  tossWinnerId       String?
+  tossDecision       String?  // BAT, BOWL
+  resultSummary      String?
+  targetRuns         Int?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  tournament         Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  homeTeam           Team       @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  awayTeam           Team       @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  winnerTeam         Team?      @relation("WinnerTeam", fields: [winnerTeamId], references: [id], onDelete: SetNull)
+  playerOfTheMatch   Player?    @relation("PlayerOfTheMatch", fields: [playerOfTheMatchId], references: [id], onDelete: SetNull)
+  innings            Innings[]
+}
+
+model Innings {
+  id            String   @id @default(uuid())
+  matchId       String
+  inningNumber  Int      // 1 or 2
+  battingTeamId String
+  bowlingTeamId String
+  totalRuns     Int      @default(0)
+  wickets       Int      @default(0)
+  overs         Float    @default(0.0)
+  wideExtras    Int      @default(0)
+  noBallExtras  Int      @default(0)
+  byeExtras     Int      @default(0)
+  legByeExtras  Int      @default(0)
+  isCompleted   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  match         Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  battingTeam   Team        @relation("BattingTeam", fields: [battingTeamId], references: [id], onDelete: Cascade)
+  bowlingTeam   Team        @relation("BowlingTeam", fields: [bowlingTeamId], references: [id], onDelete: Cascade)
+  balls         BallEvent[]
+
+  @@unique([matchId, inningNumber])
+}
+
+model BallEvent {
+  id                String   @id @default(uuid())
+  inningsId         String
+  overNumber        Int
+  ballNumberInOver  Int
+  bowlerId          String
+  strikerId         String
+  nonStrikerId      String
+  runs              Int      @default(0)
+  extraType         String   @default("NONE") // NONE, WIDE, NO_BALL, BYE, LEG_BYE
+  extraRuns         Int      @default(0)
+  isWicket          Boolean  @default(false)
+  wicketType        String?  // BOWLED, CAUGHT, LBW, RUN_OUT, STUMPING, RETIRED, HIT_WICKET
+  dismissedPlayerId String?
+  fielderId         String?
+  commentary        String?
+  wagonWheelAngle   Int?     // 0 to 360 degrees
+  wagonWheelZone    String?  // FINE_LEG, SQUARE_LEG, MID_WICKET, LONG_ON, LONG_OFF, COVER, POINT, THIRD_MAN
+  timestamp         DateTime @default(now())
+
+  innings           Innings  @relation(fields: [inningsId], references: [id], onDelete: Cascade)
+  bowler            Player   @relation("Bowler", fields: [bowlerId], references: [id], onDelete: Cascade)
+  striker           Player   @relation("Striker", fields: [strikerId], references: [id], onDelete: Cascade)
+  nonStriker        Player   @relation("NonStriker", fields: [nonStrikerId], references: [id], onDelete: Cascade)
+  dismissedPlayer   Player?  @relation("DismissedPlayer", fields: [dismissedPlayerId], references: [id], onDelete: SetNull)
+  fielder           Player?  @relation("Fielder", fields: [fielderId], references: [id], onDelete: SetNull)
+}
+
+model Announcement {
+  id           String   @id @default(uuid())
+  tournamentId String
+  title        String
+  content      String
+  isImportant  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+}
+
+model Sponsor {
+  id           String   @id @default(uuid())
+  tournamentId String
+  name         String
+  tier         String   @default("TITLE") // TITLE, POWERED_BY, ASSOCIATE, MEDIA
+  logoUrl      String?
+  websiteUrl   String?
+  createdAt    DateTime @default(now())
+
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+}
+
+model Gallery {
+  id           String   @id @default(uuid())
+  tournamentId String
+  title        String?
+  imageUrl     String
+  category     String   @default("MATCH") // MATCH, CEREMONY, TEAMS, HIGHLIGHTS
+  createdAt    DateTime @default(now())
+
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+}

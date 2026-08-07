@@ -1,0 +1,79 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Cricket Tournament Management System API",
+    "version": "1.0.0",
+    "description": "Production-ready REST API for Cricket Tournaments, Teams, Players, Fixtures, and Real-Time Ball-by-Ball Live Scoring"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/api",
+      "description": "Local Development Server"
+    }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "summary": "Admin / Scorer Login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "example": "admin@cricket.com" },
+                  "password": { "type": "string", "example": "admin123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Returns JWT token" }
+        }
+      }
+    },
+    "/tournaments": {
+      "get": {
+        "summary": "List all tournaments",
+        "responses": {
+          "200": { "description": "Array of tournaments" }
+        }
+      },
+      "post": {
+        "summary": "Create tournament (Admin)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "201": { "description": "Created tournament" }
+        }
+      }
+    },
+    "/matches": {
+      "get": {
+        "summary": "List matches",
+        "responses": {
+          "200": { "description": "Array of matches" }
+        }
+      }
+    },
+    "/live/ball": {
+      "post": {
+        "summary": "Record a new ball in live scorer (Admin/Scorer)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "201": { "description": "Recorded ball event with score broadcast" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
