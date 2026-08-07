@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Trophy, Search, Sun, Moon, Shield, Users, Calendar, LayoutDashboard, LogIn, LogOut, Menu, X, Activity } from 'lucide-react';
+import { Trophy, Search, Sun, Moon, Shield, Calendar, LayoutDashboard, LogIn, LogOut, Menu, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { GlobalSearchModal } from './GlobalSearchModal';
@@ -52,15 +52,6 @@ export const Navbar: React.FC = () => {
                 }`}
               >
                 <Shield className="w-3.5 h-3.5" /> Teams
-              </Link>
-
-              <Link
-                to="/players"
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  isActive('/players') ? 'text-emerald-400 bg-emerald-950/80 border border-emerald-800/60 shadow-md shadow-emerald-500/10' : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-                }`}
-              >
-                <Users className="w-3.5 h-3.5" /> Players
               </Link>
 
               <Link
@@ -131,7 +122,6 @@ export const Navbar: React.FC = () => {
           <div className="md:hidden border-t border-slate-800 bg-slate-950 px-4 pt-2 pb-4 space-y-1">
             <Link to="/tournaments" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-300 hover:bg-slate-800">Tournaments</Link>
             <Link to="/teams" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-300 hover:bg-slate-800">Teams</Link>
-            <Link to="/players" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-300 hover:bg-slate-800">Players</Link>
             <Link to="/matches" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-300 hover:bg-slate-800">Matches & Scores</Link>
             {user && (
               <Link to="/admin/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 rounded-xl text-sm font-bold text-amber-400 hover:bg-amber-950">Admin Hub</Link>

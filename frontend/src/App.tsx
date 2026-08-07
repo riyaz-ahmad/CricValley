@@ -12,8 +12,6 @@ import { TournamentsPage } from './pages/TournamentsPage';
 import { TournamentDetailPage } from './pages/TournamentDetailPage';
 import { TeamsPage } from './pages/TeamsPage';
 import { TeamDetailPage } from './pages/TeamDetailPage';
-import { PlayersPage } from './pages/PlayersPage';
-import { PlayerDetailPage } from './pages/PlayerDetailPage';
 import { MatchesPage } from './pages/MatchesPage';
 import { LiveMatchPage } from './pages/LiveMatchPage';
 import { LoginPage } from './pages/LoginPage';
@@ -33,7 +31,7 @@ export const App: React.FC = () => {
       <AuthProvider>
         <SocketProvider>
           <BrowserRouter>
-            <div className="min-h-screen flex flex-col bg-gray-950 text-gray-100 font-sans selection:bg-cyan-500 selection:text-white">
+            <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500 selection:text-white">
               <Navbar />
               <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <Routes>
@@ -43,11 +41,10 @@ export const App: React.FC = () => {
                   <Route path="/tournaments/:identifier" element={<TournamentDetailPage />} />
                   <Route path="/teams" element={<TeamsPage />} />
                   <Route path="/teams/:id" element={<TeamDetailPage />} />
-                  <Route path="/players" element={<PlayersPage />} />
-                  <Route path="/players/:id" element={<PlayerDetailPage />} />
                   <Route path="/matches" element={<MatchesPage />} />
                   <Route path="/matches/:id" element={<LiveMatchPage />} />
                   <Route path="/login" element={<LoginPage />} />
+                  <Route path="/players" element={<Navigate to="/tournaments" replace />} />
 
                   {/* Protected Admin Routes */}
                   <Route

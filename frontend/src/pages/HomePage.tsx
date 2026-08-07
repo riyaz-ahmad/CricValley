@@ -1,26 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, Calendar, Shield, Users, ArrowRight, Activity, CheckCircle2, Zap, Sparkles, Award, Star } from 'lucide-react';
+import { Trophy, Calendar, Shield, Users, ArrowRight, Activity, CheckCircle2, Zap, Sparkles, Award } from 'lucide-react';
 import { Tournament, Match, Player } from '../types';
 import { apiRequest } from '../services/api';
 
 export const HomePage: React.FC = () => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [tRes, mRes, pRes] = await Promise.all([
+        const [tRes, mRes] = await Promise.all([
           apiRequest<Tournament[]>('/tournaments'),
           apiRequest<Match[]>('/matches'),
-          apiRequest<Player[]>('/players'),
         ]);
         setTournaments(tRes);
         setMatches(mRes);
-        setPlayers(pRes);
       } catch (err) {
         console.error(err);
       } finally {
@@ -61,12 +58,12 @@ export const HomePage: React.FC = () => {
           <h1 className="text-4xl sm:text-6xl font-heading font-black text-white leading-tight">
             Cricket Championship <br />
             <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
-              Scores, Fixtures & Stars
+              Live Scores & Fixtures
             </span>
           </h1>
 
           <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-            Follow ongoing cricket matches, knockout tags (Semi-Finals & Finals), Man of the Match awards, and public player statistics.
+            Follow ongoing cricket matches, knockout stage tags (Semi-Finals & Finals), tournament points tables, and Man of the Match awards.
           </p>
 
           <div className="flex flex-wrap items-center gap-4 pt-2">
@@ -77,81 +74,13 @@ export const HomePage: React.FC = () => {
               <Calendar className="w-4 h-4" /> View All Matches & Scores
             </Link>
             <Link
-              to="/players"
+              to="/tournaments"
               className="px-6 py-3.5 rounded-xl bg-slate-900/80 border border-slate-700 text-slate-200 hover:text-white font-bold text-xs flex items-center gap-2 transition-all"
             >
-              <Users className="w-4 h-4 text-cyan-400" /> Browse Players Directory <ArrowRight className="w-4 h-4" />
+              <Trophy className="w-4 h-4 text-amber-400" /> Explore Leagues <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
-      </section>
-
-      {/* MAN OF THE TOURNAMENT / MVP SPOTLIGHT */}
-      <section className="bg-gradient-to-r from-amber-950/60 via-slate-900 to-slate-900 border border-amber-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-500/20 pb-4">
-          <div>
-            <div className="inline-flex items-center gap-1.5 text-amber-400 text-xs font-black uppercase tracking-widest">
-              <Award className="w-4 h-4" /> Season Honor Spotlight
-            </div>
-            <h2 className="text-2xl font-heading font-black text-white">Man of the Tournament (MVP)</h2>
-          </div>
-          <div className="flex items-center gap-2 text-xs font-bold text-amber-300 bg-amber-950/80 border border-amber-500/40 px-3 py-1.5 rounded-xl">
-            <Star className="w-4 h-4 fill-current text-amber-400" /> Leading Performer Award
-          </div>
-        </div>
-
-        {players.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-            {/* MVP Card */}
-            <div className="bg-slate-950/80 border border-amber-500/50 p-5 rounded-2xl flex items-center gap-4 shadow-xl">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-slate-950 font-black text-2xl shadow-lg shadow-amber-500/20">
-                #18
-              </div>
-              <div>
-                <div className="text-xs text-amber-400 font-extrabold uppercase tracking-wider">Tournament MVP</div>
-                <div className="text-lg font-heading font-black text-white">{players[0]?.name || 'Virat Kohli'}</div>
-                <div className="text-xs text-slate-400 font-medium">{players[0]?.team?.name || 'Mumbai Strikers'}</div>
-                <div className="mt-2 text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded inline-block">
-                  340 Runs • 8 Wickets
-                </div>
-              </div>
-            </div>
-
-            {/* MVP Card 2 */}
-            {players[1] && (
-              <div className="bg-slate-950/80 border border-slate-800 p-5 rounded-2xl flex items-center gap-4 shadow-xl">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-500 flex items-center justify-center text-slate-950 font-black text-2xl shadow-lg">
-                  #{players[1].jerseyNumber || 45}
-                </div>
-                <div>
-                  <div className="text-xs text-cyan-400 font-extrabold uppercase tracking-wider">Top Batsman</div>
-                  <div className="text-lg font-heading font-black text-white">{players[1].name}</div>
-                  <div className="text-xs text-slate-400 font-medium">{players[1].team?.name || 'Bangalore Express'}</div>
-                  <div className="mt-2 text-[11px] font-bold text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded inline-block">
-                    295 Runs • Avg 59.0
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* MVP Card 3 */}
-            {players[2] && (
-              <div className="bg-slate-950/80 border border-slate-800 p-5 rounded-2xl flex items-center gap-4 shadow-xl">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-slate-950 font-black text-2xl shadow-lg">
-                  #{players[2].jerseyNumber || 93}
-                </div>
-                <div>
-                  <div className="text-xs text-emerald-400 font-extrabold uppercase tracking-wider">Top Bowler</div>
-                  <div className="text-lg font-heading font-black text-white">{players[2].name}</div>
-                  <div className="text-xs text-slate-400 font-medium">{players[2].team?.name || 'Chennai Super Kings'}</div>
-                  <div className="mt-2 text-[11px] font-bold text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded inline-block">
-                    12 Wickets • Econ 6.2
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </section>
 
       {/* Ongoing Matches */}
