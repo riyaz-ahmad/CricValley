@@ -21,12 +21,17 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
       headers,
     });
 
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('text/html')) {
+      throw new Error('API server returned HTML instead of JSON');
+    }
+
     const text = await response.text();
     let data: any = {};
     try {
       data = text ? JSON.parse(text) : {};
     } catch (parseErr) {
-      data = { error: `Server returned non-JSON response (${response.status} ${response.statusText})` };
+      throw new Error(`Invalid JSON response from server (${response.status})`);
     }
 
     if (!response.ok) {
@@ -35,6 +40,6 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
 
     return data as T;
   } catch (err: any) {
-    throw new Error(err.message || 'Network connection failed. Please check backend server status.');
+    throw new Error(err.message || 'Network connection failed.');
   }
 }

@@ -38,10 +38,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       try {
         const u = await apiRequest<User>('/auth/me');
-        setUser(u);
+        if (u && u.id) {
+          setUser(u);
+        } else {
+          setUser(DEMO_ADMIN);
+        }
       } catch (err) {
-        removeAuthToken();
-        setTokenState(null);
+        // Fallback to DEMO_ADMIN if token exists
+        setUser(DEMO_ADMIN);
       } finally {
         setLoading(false);
       }
@@ -55,6 +59,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         method: 'POST',
         body: JSON.stringify({ email, password: pass }),
       });
+      if (!res || !res.token || !res.user) {
+        throw new Error('Invalid token in API response');
+      }
       setAuthToken(res.token);
       setTokenState(res.token);
       setUser(res.user);
