@@ -336,7 +336,52 @@ export const AdminScorerPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Match Setup Controls (If UPCOMING) */}
+      {/* Toss Status & Control Bar */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-amber-950/80 border border-amber-600/40 text-amber-400 font-bold flex items-center justify-center text-lg">
+            🪙
+          </div>
+          <div>
+            <div className="text-xs text-amber-400 font-extrabold uppercase">Toss Details</div>
+            <div className="text-sm font-heading font-black text-white">
+              {match.tossWinnerId ? (
+                <>
+                  {match.tossWinnerId === match.homeTeamId ? match.homeTeam.name : match.awayTeam.name} won the toss & elected to {match.tossDecision || 'BAT'}
+                </>
+              ) : (
+                'Toss decision pending'
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs">
+          <select
+            value={match.tossWinnerId || match.homeTeamId}
+            onChange={(e) => {
+              const updatedMatch: Match = { ...match, tossWinnerId: e.target.value };
+              saveUpdatedMatch(updatedMatch);
+            }}
+            className="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-bold"
+          >
+            <option value={match.homeTeamId}>Toss Winner: {match.homeTeam.name}</option>
+            <option value={match.awayTeamId}>Toss Winner: {match.awayTeam.name}</option>
+          </select>
+
+          <select
+            value={match.tossDecision || 'BAT'}
+            onChange={(e) => {
+              const updatedMatch: Match = { ...match, tossDecision: e.target.value as any };
+              saveUpdatedMatch(updatedMatch);
+            }}
+            className="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-bold"
+          >
+            <option value="BAT">Elected to BAT</option>
+            <option value="BOWL">Elected to BOWL</option>
+          </select>
+        </div>
+      </div>
       {match.status === 'UPCOMING' && (
         <div className="bg-gradient-to-r from-slate-950 via-emerald-950 to-slate-950 border border-emerald-800/60 rounded-3xl p-6 text-center space-y-4 shadow-xl">
           <h3 className="text-lg font-heading font-bold text-white">Start Match Toss & 1st Innings</h3>

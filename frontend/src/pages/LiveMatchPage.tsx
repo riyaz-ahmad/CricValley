@@ -82,6 +82,16 @@ export const LiveMatchPage: React.FC = () => {
           </span>
         </div>
 
+        {/* Toss Banner */}
+        {match.tossWinnerId && (
+          <div className="p-3 bg-slate-950 border border-slate-800 rounded-2xl flex items-center gap-2 text-xs font-semibold text-amber-300">
+            <span className="text-sm">🪙</span>
+            <span>
+              <strong>{match.tossWinnerId === match.homeTeamId ? match.homeTeam.name : match.awayTeam.name}</strong> won the toss and elected to <strong>{match.tossDecision || 'BAT'}</strong> first.
+            </span>
+          </div>
+        )}
+
         {/* Live Scorecards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className={`border p-6 rounded-2xl space-y-2 text-center transition-all ${

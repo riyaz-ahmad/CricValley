@@ -92,6 +92,8 @@ export const AdminDashboardPage: React.FC = () => {
   const [resForm, setResForm] = useState({
     status: 'COMPLETED',
     stage: 'LEAGUE',
+    tossWinnerId: '',
+    tossDecision: 'BAT',
     winnerTeamId: '',
     playerOfTheMatchId: '',
     resultSummary: '',
@@ -487,6 +489,8 @@ export const AdminDashboardPage: React.FC = () => {
             ...m,
             status: resForm.status as any,
             stage: resForm.stage as any,
+            tossWinnerId: resForm.tossWinnerId,
+            tossDecision: resForm.tossDecision as any,
             winnerTeamId: resForm.winnerTeamId,
             winnerTeam,
             playerOfTheMatchId: resForm.playerOfTheMatchId,
@@ -893,8 +897,10 @@ export const AdminDashboardPage: React.FC = () => {
                           setResultMatch(m);
                           const matchedPlayers = players.filter((p) => p.teamId === m.homeTeamId || p.teamId === m.awayTeamId);
                           setResForm({
-                            status: 'COMPLETED',
+                            status: m.status || 'COMPLETED',
                             stage: m.stage,
+                            tossWinnerId: m.tossWinnerId || m.homeTeamId,
+                            tossDecision: m.tossDecision || 'BAT',
                             winnerTeamId: m.winnerTeamId || m.homeTeamId,
                             playerOfTheMatchId: m.playerOfTheMatchId || (matchedPlayers[0]?.id || ''),
                             resultSummary: m.resultSummary || `${m.homeTeam.shortName} won by 15 runs`,
@@ -929,7 +935,7 @@ export const AdminDashboardPage: React.FC = () => {
       {/* MATCH RESULT & MAN OF THE MATCH MODAL */}
       {showResultModal && resultMatch && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 space-y-4">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-heading font-black text-white flex items-center gap-2">
               <Trophy className="w-5 h-5 text-amber-400" /> Update Result & Declare Man of the Match
             </h3>
@@ -944,7 +950,7 @@ export const AdminDashboardPage: React.FC = () => {
                   <select
                     value={resForm.stage}
                     onChange={(e) => setResForm({ ...resForm, stage: e.target.value })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-medium"
                   >
                     <option value="LEAGUE">Group / League Match</option>
                     <option value="QUARTER_FINAL">Quarter Final</option>
@@ -958,12 +964,44 @@ export const AdminDashboardPage: React.FC = () => {
                   <select
                     value={resForm.status}
                     onChange={(e) => setResForm({ ...resForm, status: e.target.value })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-medium"
                   >
                     <option value="LIVE">ONGOING (In Progress)</option>
                     <option value="COMPLETED">COMPLETED (Finished)</option>
                     <option value="UPCOMING">UPCOMING</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Toss Winner & Toss Decision */}
+              <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+                <div className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  🪙 Toss Information & Decision:
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">Toss Winner</label>
+                    <select
+                      value={resForm.tossWinnerId}
+                      onChange={(e) => setResForm({ ...resForm, tossWinnerId: e.target.value })}
+                      className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-bold"
+                    >
+                      <option value={resultMatch.homeTeamId}>{resultMatch.homeTeam.name}</option>
+                      <option value={resultMatch.awayTeamId}>{resultMatch.awayTeam.name}</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">Toss Decision</label>
+                    <select
+                      value={resForm.tossDecision}
+                      onChange={(e) => setResForm({ ...resForm, tossDecision: e.target.value })}
+                      className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-bold"
+                    >
+                      <option value="BAT">Elected to BAT first</option>
+                      <option value="BOWL">Elected to BOWL first</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
