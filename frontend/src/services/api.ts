@@ -15,16 +15,26 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
 
-  const data = await response.json();
+    const text = await response.text();
+    let data: any = {};
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (parseErr) {
+      data = { error: `Server returned non-JSON response (${response.status} ${response.statusText})` };
+    }
 
-  if (!response.ok) {
-    throw new Error(data.error || 'API Request Failed');
+    if (!response.ok) {
+      throw new Error(data.error || `API Request Failed with status ${response.status}`);
+    }
+
+    return data as T;
+  } catch (err: any) {
+    throw new Error(err.message || 'Network connection failed. Please check backend server status.');
   }
-
-  return data as T;
 }
