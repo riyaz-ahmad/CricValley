@@ -27,13 +27,13 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="max-w-md mx-auto py-12 px-4">
-      <div className="bg-gray-900 border border-gray-800 rounded-3xl p-8 shadow-2xl space-y-6">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl space-y-6">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 mx-auto flex items-center justify-center shadow-lg shadow-cyan-500/20">
-            <Trophy className="w-6 h-6 text-white" />
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <Trophy className="w-6 h-6 text-slate-950 fill-current" />
           </div>
-          <h2 className="text-2xl font-heading font-black text-white">Admin & Scorer Portal</h2>
-          <p className="text-xs text-gray-400">Secure access to live scoring, tournaments, and fixtures management</p>
+          <h2 className="text-2xl font-heading font-black text-white">CricValley Admin Hub</h2>
+          <p className="text-xs text-slate-400">Secure access to scorecards, tournaments, and match management</p>
         </div>
 
         {error && (
@@ -44,29 +44,29 @@ export const LoginPage: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">Email Address</label>
+            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Email Address</label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-gray-500 absolute left-3 top-3.5" />
+              <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-medium"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">Password</label>
+            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Password</label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-gray-500 absolute left-3 top-3.5" />
+              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-medium"
               />
             </div>
           </div>
@@ -74,14 +74,14 @@ export const LoginPage: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 transition-all"
+            className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black rounded-xl text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5"
           >
-            {loading ? 'Authenticating...' : 'Sign In to Admin Dashboard'} <ArrowRight className="w-4 h-4" />
+            {loading ? 'Authenticating...' : 'Sign In to Admin Hub'} <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        <div className="p-3 bg-gray-950 rounded-xl border border-gray-800 text-[11px] text-gray-400 text-center">
-          Default Credentials: <strong className="text-cyan-400">admin@cricket.com</strong> / <strong className="text-cyan-400">admin123</strong>
+        <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-[11px] text-slate-400 text-center">
+          Default Credentials: <strong className="text-emerald-400">admin@cricket.com</strong> / <strong className="text-emerald-400">admin123</strong>
         </div>
       </div>
     </div>
