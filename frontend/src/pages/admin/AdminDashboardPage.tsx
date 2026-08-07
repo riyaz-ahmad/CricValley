@@ -2,16 +2,34 @@ import React, { useEffect, useState } from 'react';
 import { Trophy, Plus, Shield, Users, Calendar, Edit3, Trash2, CheckCircle2, Table, Zap, X, PlusCircle, Award } from 'lucide-react';
 import { Tournament, Team, Player, Match } from '../../types';
 import { apiRequest } from '../../services/api';
+import { storage } from '../../services/storage';
 
 export const AdminDashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'tournaments' | 'teams' | 'players' | 'matches'>('tournaments');
 
-  // Data states
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Data states initialized from storage
+  const [tournaments, setTournaments] = useState<Tournament[]>(() => storage.getTournaments());
+  const [teams, setTeams] = useState<Team[]>(() => storage.getTeams());
+  const [players, setPlayers] = useState<Player[]>(() => storage.getPlayers());
+  const [matches, setMatches] = useState<Match[]>(() => storage.getMatches());
+  const [loading, setLoading] = useState(false);
+
+  // Auto-sync state changes to persistent LocalStorage
+  useEffect(() => {
+    storage.saveTournaments(tournaments);
+  }, [tournaments]);
+
+  useEffect(() => {
+    storage.saveTeams(teams);
+  }, [teams]);
+
+  useEffect(() => {
+    storage.savePlayers(players);
+  }, [players]);
+
+  useEffect(() => {
+    storage.saveMatches(matches);
+  }, [matches]);
 
   // Modals state
   const [showTournamentModal, setShowTournamentModal] = useState(false);
@@ -70,7 +88,6 @@ export const AdminDashboardPage: React.FC = () => {
   });
 
   const fetchAll = async () => {
-    setLoading(true);
     try {
       const [tData, tmData, pData, mData] = await Promise.all([
         apiRequest<Tournament[]>('/tournaments'),
@@ -82,29 +99,16 @@ export const AdminDashboardPage: React.FC = () => {
       setTeams(tmData);
       setPlayers(pData);
       setMatches(mData);
-
-      if (tmData.length > 0 && !pForm.teamId) {
-        setPForm((prev) => ({ ...prev, teamId: tmData[0].id }));
-        setBulkPlayerTeamId(tmData[0].id);
-      }
-      if (tData.length > 0 && tmData.length >= 2 && !mForm.tournamentId) {
-        setMForm((prev) => ({
-          ...prev,
-          tournamentId: tData[0].id,
-          homeTeamId: tmData[0].id,
-          awayTeamId: tmData[1].id,
-        }));
-        setBulkMatchTournamentId(tData[0].id);
-
-        setMatchGridRows([
-          { homeTeamId: tmData[0].id, awayTeamId: tmData[1].id, stage: 'LEAGUE', venue: 'Wankhede Stadium', scheduledAt: '2026-08-15T18:00' },
-          { homeTeamId: tmData[1].id, awayTeamId: tmData[0].id, stage: 'SEMI_FINAL', venue: 'Chinnaswamy Stadium', scheduledAt: '2026-08-18T18:00' },
-        ]);
-      }
     } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+      // Clean fallback from persistent storage
+      const tData = storage.getTournaments();
+      const tmData = storage.getTeams();
+      const pData = storage.getPlayers();
+      const mData = storage.getMatches();
+      setTournaments(tData);
+      setTeams(tmData);
+      setPlayers(pData);
+      setMatches(mData);
     }
   };
 
