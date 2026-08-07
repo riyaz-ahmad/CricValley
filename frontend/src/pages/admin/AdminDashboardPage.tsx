@@ -126,7 +126,18 @@ export const AdminDashboardPage: React.FC = () => {
       alert(res.message);
       setShowBulkTeamGridModal(false);
       fetchAll();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) {
+      const newTeams: Team[] = validTeams.map((vt, i) => ({
+        id: `team-bulk-${Date.now()}-${i}`,
+        name: vt.name,
+        shortName: vt.shortName.toUpperCase(),
+        city: vt.city,
+        captainName: vt.captainName,
+      }));
+      setTeams((prev) => [...prev, ...newTeams]);
+      setShowBulkTeamGridModal(false);
+      alert(`Successfully added ${newTeams.length} teams!`);
+    }
   };
 
   const handleSavePlayerGrid = async (e: React.FormEvent) => {
@@ -143,7 +154,22 @@ export const AdminDashboardPage: React.FC = () => {
       alert(res.message);
       setShowBulkPlayerGridModal(false);
       fetchAll();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) {
+      const targetTeam = teams.find((t) => t.id === bulkPlayerTeamId);
+      const newPlayers: Player[] = validPlayers.map((vp, i) => ({
+        id: `player-bulk-${Date.now()}-${i}`,
+        name: vp.name,
+        jerseyNumber: vp.jerseyNumber || Math.floor(Math.random() * 99) + 1,
+        role: (vp.role || 'ALL_ROUNDER') as any,
+        battingStyle: vp.battingStyle || 'Right-Handed',
+        bowlingStyle: 'Right-Arm Fast',
+        teamId: bulkPlayerTeamId,
+        team: targetTeam,
+      }));
+      setPlayers((prev) => [...prev, ...newPlayers]);
+      setShowBulkPlayerGridModal(false);
+      alert(`Successfully added ${newPlayers.length} players!`);
+    }
   };
 
   const handleSaveMatchGrid = async (e: React.FormEvent) => {
@@ -160,7 +186,30 @@ export const AdminDashboardPage: React.FC = () => {
       alert(res.message);
       setShowBulkMatchGridModal(false);
       fetchAll();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) {
+      const tournament = tournaments.find((t) => t.id === bulkMatchTournamentId);
+      const newMatches: Match[] = validMatches.map((vm, i) => {
+        const homeTeam = teams.find((t) => t.id === vm.homeTeamId)!;
+        const awayTeam = teams.find((t) => t.id === vm.awayTeamId)!;
+        return {
+          id: `match-bulk-${Date.now()}-${i}`,
+          tournamentId: bulkMatchTournamentId,
+          tournament,
+          homeTeamId: vm.homeTeamId,
+          awayTeamId: vm.awayTeamId,
+          homeTeam,
+          awayTeam,
+          stage: (vm.stage || 'LEAGUE') as any,
+          matchNumber: matches.length + i + 1,
+          status: 'UPCOMING',
+          scheduledAt: vm.scheduledAt || new Date().toISOString(),
+          venue: vm.venue || 'Stadium',
+        };
+      });
+      setMatches((prev) => [...prev, ...newMatches]);
+      setShowBulkMatchGridModal(false);
+      alert(`Successfully scheduled ${newMatches.length} matches!`);
+    }
   };
 
   const handleAutoGenerateFixtures = async (tId: string) => {
@@ -171,7 +220,30 @@ export const AdminDashboardPage: React.FC = () => {
       });
       alert(res.message);
       fetchAll();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) {
+      if (teams.length < 2) return alert('At least 2 teams required to generate fixtures!');
+      const newMatches: Match[] = [];
+      let num = matches.length + 1;
+      for (let i = 0; i < teams.length; i++) {
+        for (let j = i + 1; j < teams.length; j++) {
+          newMatches.push({
+            id: `match-auto-${Date.now()}-${num}`,
+            tournamentId: tId,
+            homeTeamId: teams[i].id,
+            awayTeamId: teams[j].id,
+            homeTeam: teams[i],
+            awayTeam: teams[j],
+            stage: 'LEAGUE',
+            matchNumber: num++,
+            status: 'UPCOMING',
+            scheduledAt: new Date(Date.now() + num * 86400000).toISOString(),
+            venue: 'Main Ground',
+          });
+        }
+      }
+      setMatches((prev) => [...prev, ...newMatches]);
+      alert(`Generated ${newMatches.length} round-robin matches!`);
+    }
   };
 
   // --- SINGLE TOURNAMENT HANDLERS ---
@@ -186,7 +258,31 @@ export const AdminDashboardPage: React.FC = () => {
       setShowTournamentModal(false);
       setEditingTournament(null);
       fetchAll();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) {
+      if (editingTournament) {
+        setTournaments((prev) => prev.map((t) => (t.id === editingTournament.id ? { ...t, title: tForm.title, format: tForm.format as any, overs: tForm.overs, ground: tForm.ground, city: tForm.city } : t)));
+      } else {
+        const newT: Tournament = {
+          id: `t-${Date.now()}`,
+          title: tForm.title,
+          slug: tForm.title.toLowerCase().replace(/\s+/g, '-'),
+          format: (tForm.format || 'LEAGUE_KNOCKOUT') as any,
+          overs: tForm.overs,
+          powerplayOvers: 6,
+          ballType: 'Leather',
+          ground: tForm.ground,
+          city: tForm.city,
+          startDate: tForm.startDate,
+          endDate: tForm.endDate,
+          entryFee: 0,
+          status: 'PUBLISHED',
+        };
+        setTournaments((prev) => [...prev, newT]);
+      }
+      setShowTournamentModal(false);
+      setEditingTournament(null);
+      alert('Tournament saved successfully!');
+    }
   };
 
   const handleDeleteTournament = async (id: string) => {
@@ -194,7 +290,10 @@ export const AdminDashboardPage: React.FC = () => {
     try {
       await apiRequest(`/tournaments/${id}`, { method: 'DELETE' });
       fetchAll();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) {
+      setTournaments((prev) => prev.filter((t) => t.id !== id));
+      alert('Tournament deleted!');
+    }
   };
 
   // --- SINGLE TEAM HANDLERS ---
@@ -209,7 +308,23 @@ export const AdminDashboardPage: React.FC = () => {
       setShowTeamModal(false);
       setEditingTeam(null);
       fetchAll();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) {
+      if (editingTeam) {
+        setTeams((prev) => prev.map((t) => (t.id === editingTeam.id ? { ...t, ...tmForm } : t)));
+      } else {
+        const newTeam: Team = {
+          id: `team-${Date.now()}`,
+          name: tmForm.name,
+          shortName: tmForm.shortName.toUpperCase(),
+          city: tmForm.city,
+          captainName: tmForm.captainName,
+        };
+        setTeams((prev) => [...prev, newTeam]);
+      }
+      setShowTeamModal(false);
+      setEditingTeam(null);
+      alert('Team saved successfully!');
+    }
   };
 
   const handleDeleteTeam = async (id: string) => {
@@ -217,7 +332,10 @@ export const AdminDashboardPage: React.FC = () => {
     try {
       await apiRequest(`/teams/${id}`, { method: 'DELETE' });
       fetchAll();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) {
+      setTeams((prev) => prev.filter((t) => t.id !== id));
+      alert('Team deleted!');
+    }
   };
 
   // --- SINGLE PLAYER HANDLERS ---
@@ -232,7 +350,27 @@ export const AdminDashboardPage: React.FC = () => {
       setShowPlayerModal(false);
       setEditingPlayer(null);
       fetchAll();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) {
+      const team = teams.find((t) => t.id === pForm.teamId);
+      if (editingPlayer) {
+        setPlayers((prev) => prev.map((p) => (p.id === editingPlayer.id ? { ...p, ...pForm, role: pForm.role as any, team } : p)));
+      } else {
+        const newP: Player = {
+          id: `player-${Date.now()}`,
+          name: pForm.name,
+          jerseyNumber: pForm.jerseyNumber,
+          role: pForm.role as any,
+          battingStyle: pForm.battingStyle,
+          bowlingStyle: pForm.bowlingStyle,
+          teamId: pForm.teamId,
+          team,
+        };
+        setPlayers((prev) => [...prev, newP]);
+      }
+      setShowPlayerModal(false);
+      setEditingPlayer(null);
+      alert('Player saved successfully!');
+    }
   };
 
   const handleDeletePlayer = async (id: string) => {
@@ -240,7 +378,10 @@ export const AdminDashboardPage: React.FC = () => {
     try {
       await apiRequest(`/players/${id}`, { method: 'DELETE' });
       fetchAll();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) {
+      setPlayers((prev) => prev.filter((p) => p.id !== id));
+      alert('Player deleted!');
+    }
   };
 
   // --- SINGLE MATCH HANDLERS ---
@@ -255,7 +396,31 @@ export const AdminDashboardPage: React.FC = () => {
       setShowMatchModal(false);
       setEditingMatch(null);
       fetchAll();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) {
+      const homeTeam = teams.find((t) => t.id === mForm.homeTeamId)!;
+      const awayTeam = teams.find((t) => t.id === mForm.awayTeamId)!;
+      if (editingMatch) {
+        setMatches((prev) => prev.map((m) => (m.id === editingMatch.id ? { ...m, stage: mForm.stage as any, scheduledAt: mForm.scheduledAt, venue: mForm.venue, homeTeam, awayTeam } : m)));
+      } else {
+        const newM: Match = {
+          id: `match-${Date.now()}`,
+          tournamentId: mForm.tournamentId,
+          homeTeamId: mForm.homeTeamId,
+          awayTeamId: mForm.awayTeamId,
+          homeTeam,
+          awayTeam,
+          stage: mForm.stage as any,
+          matchNumber: matches.length + 1,
+          status: 'UPCOMING',
+          scheduledAt: mForm.scheduledAt,
+          venue: mForm.venue || 'Stadium',
+        };
+        setMatches((prev) => [...prev, newM]);
+      }
+      setShowMatchModal(false);
+      setEditingMatch(null);
+      alert('Match scheduled successfully!');
+    }
   };
 
   const handleDeleteMatch = async (id: string) => {
@@ -263,7 +428,10 @@ export const AdminDashboardPage: React.FC = () => {
     try {
       await apiRequest(`/matches/${id}`, { method: 'DELETE' });
       fetchAll();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) {
+      setMatches((prev) => prev.filter((m) => m.id !== id));
+      alert('Match deleted!');
+    }
   };
 
   // --- RESULT HANDLER ---
@@ -278,7 +446,60 @@ export const AdminDashboardPage: React.FC = () => {
       setShowResultModal(false);
       setResultMatch(null);
       fetchAll();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) {
+      const winnerTeam = teams.find((t) => t.id === resForm.winnerTeamId);
+      const playerOfTheMatch = players.find((p) => p.id === resForm.playerOfTheMatchId);
+      setMatches((prev) =>
+        prev.map((m) => {
+          if (m.id !== resultMatch.id) return m;
+          return {
+            ...m,
+            status: resForm.status as any,
+            stage: resForm.stage as any,
+            winnerTeamId: resForm.winnerTeamId,
+            winnerTeam,
+            playerOfTheMatchId: resForm.playerOfTheMatchId,
+            playerOfTheMatch,
+            resultSummary: resForm.resultSummary,
+            innings: [
+              {
+                id: `inn-1-${m.id}`,
+                matchId: m.id,
+                inningNumber: 1,
+                battingTeamId: m.homeTeamId,
+                bowlingTeamId: m.awayTeamId,
+                totalRuns: resForm.homeScoreRuns,
+                wickets: resForm.homeWickets,
+                overs: resForm.homeOvers,
+                wideExtras: 0,
+                noBallExtras: 0,
+                byeExtras: 0,
+                legByeExtras: 0,
+                isCompleted: true,
+              },
+              {
+                id: `inn-2-${m.id}`,
+                matchId: m.id,
+                inningNumber: 2,
+                battingTeamId: m.awayTeamId,
+                bowlingTeamId: m.homeTeamId,
+                totalRuns: resForm.awayScoreRuns,
+                wickets: resForm.awayWickets,
+                overs: resForm.awayOvers,
+                wideExtras: 0,
+                noBallExtras: 0,
+                byeExtras: 0,
+                legByeExtras: 0,
+                isCompleted: true,
+              },
+            ],
+          };
+        })
+      );
+      setShowResultModal(false);
+      setResultMatch(null);
+      alert('Match score & result saved successfully!');
+    }
   };
 
   return (
