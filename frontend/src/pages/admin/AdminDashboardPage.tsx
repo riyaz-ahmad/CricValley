@@ -51,7 +51,22 @@ export const AdminDashboardPage: React.FC = () => {
   const [resultMatch, setResultMatch] = useState<Match | null>(null);
 
   // Form states
-  const [tForm, setTForm] = useState({ title: '', format: 'LEAGUE_KNOCKOUT', overs: 20, ground: '', city: '', startDate: '2026-09-01', endDate: '2026-09-25', prizePool: '' });
+  const [tForm, setTForm] = useState({
+    title: '',
+    description: '',
+    format: 'LEAGUE_KNOCKOUT',
+    overs: 20,
+    ballType: 'Leather',
+    entryFee: 5000,
+    prizePool: '₹1,50,000 + Trophy & Medals',
+    city: 'Srinagar',
+    ground: 'Valley Sports Complex',
+    startDate: '2026-09-01',
+    endDate: '2026-09-25',
+    contactEmail: 'support@cricvalley.com',
+    contactPhone: '7780807508',
+    rules: 'Standard T20 Playing Conditions. 6 Overs Powerplay.',
+  });
   const [tmForm, setTmForm] = useState({ name: '', shortName: '', city: '', captainName: '', coachName: '' });
 
   // Grid Bulk Data States
@@ -264,21 +279,32 @@ export const AdminDashboardPage: React.FC = () => {
       fetchAll();
     } catch (err: any) {
       if (editingTournament) {
-        setTournaments((prev) => prev.map((t) => (t.id === editingTournament.id ? { ...t, title: tForm.title, format: tForm.format as any, overs: tForm.overs, ground: tForm.ground, city: tForm.city } : t)));
+        setTournaments((prev) =>
+          prev.map((t) =>
+            t.id === editingTournament.id
+              ? { ...t, ...tForm, format: tForm.format as any, entryFee: Number(tForm.entryFee) }
+              : t
+          )
+        );
       } else {
         const newT: Tournament = {
           id: `t-${Date.now()}`,
           title: tForm.title,
           slug: tForm.title.toLowerCase().replace(/\s+/g, '-'),
+          description: tForm.description,
           format: (tForm.format || 'LEAGUE_KNOCKOUT') as any,
-          overs: tForm.overs,
+          overs: Number(tForm.overs) || 20,
           powerplayOvers: 6,
-          ballType: 'Leather',
+          ballType: tForm.ballType,
           ground: tForm.ground,
           city: tForm.city,
           startDate: tForm.startDate,
           endDate: tForm.endDate,
-          entryFee: 0,
+          entryFee: Number(tForm.entryFee) || 0,
+          prizePool: tForm.prizePool,
+          rules: tForm.rules,
+          contactEmail: tForm.contactEmail,
+          contactPhone: tForm.contactPhone,
           status: 'PUBLISHED',
         };
         setTournaments((prev) => [...prev, newT]);
@@ -552,7 +578,22 @@ export const AdminDashboardPage: React.FC = () => {
             <button
               onClick={() => {
                 setEditingTournament(null);
-                setTForm({ title: '', format: 'LEAGUE_KNOCKOUT', overs: 20, ground: '', city: '', startDate: '2026-09-01', endDate: '2026-09-25', prizePool: '' });
+                setTForm({
+                  title: '',
+                  description: '',
+                  format: 'LEAGUE_KNOCKOUT',
+                  overs: 20,
+                  ballType: 'Leather',
+                  entryFee: 5000,
+                  prizePool: '₹1,50,000 + Trophy & Medals',
+                  city: 'Srinagar',
+                  ground: 'Valley Sports Complex',
+                  startDate: '2026-09-01',
+                  endDate: '2026-09-25',
+                  contactEmail: 'support@cricvalley.com',
+                  contactPhone: '7780807508',
+                  rules: 'Standard T20 Playing Conditions. 6 Overs Powerplay.',
+                });
                 setShowTournamentModal(true);
               }}
               className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md shadow-emerald-500/20"
@@ -565,9 +606,10 @@ export const AdminDashboardPage: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="text-slate-400 border-b border-slate-800 uppercase tracking-wider font-semibold">
-                  <th className="py-3 px-3">Title</th>
-                  <th className="py-3 px-3">Format</th>
-                  <th className="py-3 px-3">Overs</th>
+                  <th className="py-3 px-3">Title & Overview</th>
+                  <th className="py-3 px-3">Format & Overs</th>
+                  <th className="py-3 px-3">Prize Award Pool</th>
+                  <th className="py-3 px-3">Entry Fee</th>
                   <th className="py-3 px-3">City / Ground</th>
                   <th className="py-3 px-3 text-right">Actions</th>
                 </tr>
@@ -575,15 +617,40 @@ export const AdminDashboardPage: React.FC = () => {
               <tbody className="divide-y divide-slate-900">
                 {tournaments.map((t) => (
                   <tr key={t.id} className="hover:bg-slate-800/40">
-                    <td className="py-3 px-3 font-bold text-white">{t.title}</td>
-                    <td className="py-3 px-3 text-emerald-400 font-semibold">{t.format}</td>
-                    <td className="py-3 px-3 text-slate-300">{t.overs} Overs</td>
-                    <td className="py-3 px-3 text-slate-400">{t.ground || 'Stadium'}, {t.city}</td>
+                    <td className="py-3 px-3 font-bold text-white">
+                      <div>{t.title}</div>
+                      {t.description && <div className="text-[11px] text-slate-400 font-normal truncate max-w-xs">{t.description}</div>}
+                    </td>
+                    <td className="py-3 px-3 text-emerald-400 font-semibold">
+                      {t.format.replace('_', ' ')} ({t.overs} Ov, {t.ballType || 'Leather'})
+                    </td>
+                    <td className="py-3 px-3 text-amber-400 font-bold">
+                      {t.prizePool || 'Trophy & Medals'}
+                    </td>
+                    <td className="py-3 px-3 text-cyan-400 font-mono font-bold">
+                      {t.entryFee ? `₹${t.entryFee}` : 'Free'}
+                    </td>
+                    <td className="py-3 px-3 text-slate-400">{t.ground || 'Stadium'}, {t.city || 'Kashmir'}</td>
                     <td className="py-3 px-3 text-right flex items-center justify-end gap-2">
                       <button
                         onClick={() => {
                           setEditingTournament(t);
-                          setTForm({ title: t.title, format: t.format, overs: t.overs, ground: t.ground || '', city: t.city || '', startDate: t.startDate.slice(0, 10), endDate: t.endDate.slice(0, 10), prizePool: t.prizePool || '' });
+                          setTForm({
+                            title: t.title,
+                            description: t.description || '',
+                            format: t.format,
+                            overs: t.overs,
+                            ballType: t.ballType || 'Leather',
+                            entryFee: t.entryFee || 5000,
+                            prizePool: t.prizePool || '₹1,50,000 + Trophy',
+                            city: t.city || 'Srinagar',
+                            ground: t.ground || 'Valley Stadium',
+                            startDate: t.startDate ? t.startDate.slice(0, 10) : '2026-09-01',
+                            endDate: t.endDate ? t.endDate.slice(0, 10) : '2026-09-25',
+                            contactEmail: t.contactEmail || 'support@cricvalley.com',
+                            contactPhone: t.contactPhone || '7780807508',
+                            rules: t.rules || 'Standard T20 Rules',
+                          });
                           setShowTournamentModal(true);
                         }}
                         className="p-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 rounded-lg"
@@ -1191,20 +1258,207 @@ export const AdminDashboardPage: React.FC = () => {
 
       {/* SINGLE TOURNAMENT MODAL */}
       {showTournamentModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 space-y-4">
-            <h3 className="text-lg font-heading font-extrabold text-white">{editingTournament ? 'Edit Tournament' : 'Create Tournament'}</h3>
-            <form onSubmit={handleSaveTournament} className="space-y-3">
-              <input type="text" required placeholder="Tournament Title" value={tForm.title} onChange={(e) => setTForm({ ...tForm, title: e.target.value })} className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white" />
-              <div className="grid grid-cols-2 gap-3">
-                <select value={tForm.format} onChange={(e) => setTForm({ ...tForm, format: e.target.value })} className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white">
-                  <option value="LEAGUE">League</option><option value="KNOCKOUT">Knockout</option><option value="LEAGUE_KNOCKOUT">League + Knockout</option>
-                </select>
-                <input type="number" required placeholder="Overs" value={tForm.overs} onChange={(e) => setTForm({ ...tForm, overs: Number(e.target.value) })} className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white" />
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-xl font-heading font-black text-white flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-amber-400" /> {editingTournament ? 'Edit Tournament Details' : 'Create New Tournament'}
+              </h3>
+              <button onClick={() => setShowTournamentModal(false)} className="text-slate-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTournament} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Tournament Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Kashmir T20 Premier Cup 2026"
+                  value={tForm.title}
+                  onChange={(e) => setTForm({ ...tForm, title: e.target.value })}
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-bold"
+                />
               </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowTournamentModal(false)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold">Cancel</button>
-                <button type="submit" className="px-5 py-2 bg-emerald-500 text-slate-950 font-black rounded-xl text-xs">Save Tournament</button>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Tournament Overview & Description</label>
+                <textarea
+                  rows={2}
+                  placeholder="Brief overview of the league, participating zones, and tournament vision..."
+                  value={tForm.description}
+                  onChange={(e) => setTForm({ ...tForm, description: e.target.value })}
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              {/* Format, Overs, Ball Type */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Format *</label>
+                  <select
+                    value={tForm.format}
+                    onChange={(e) => setTForm({ ...tForm, format: e.target.value })}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-medium"
+                  >
+                    <option value="LEAGUE">League Matches Only</option>
+                    <option value="KNOCKOUT">Knockout Tournament</option>
+                    <option value="LEAGUE_KNOCKOUT">League + Knockout</option>
+                    <option value="ROUND_ROBIN">Round Robin</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Overs Per Inning *</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="20"
+                    value={tForm.overs}
+                    onChange={(e) => setTForm({ ...tForm, overs: Number(e.target.value) })}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-mono font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Ball Type</label>
+                  <select
+                    value={tForm.ballType}
+                    onChange={(e) => setTForm({ ...tForm, ballType: e.target.value })}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+                  >
+                    <option value="Leather">Leather Ball</option>
+                    <option value="Tennis">Heavy Tennis Ball</option>
+                    <option value="Synthetic">Synthetic Ball</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Prize Award & Entry Fee */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">Prize Award Pool Details</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ₹1,50,000 + Championship Trophy + Medals"
+                    value={tForm.prizePool}
+                    onChange={(e) => setTForm({ ...tForm, prizePool: e.target.value })}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-amber-300 font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-cyan-400 uppercase tracking-wider mb-1">Team Entry Fee (₹)</label>
+                  <input
+                    type="number"
+                    placeholder="5000"
+                    value={tForm.entryFee}
+                    onChange={(e) => setTForm({ ...tForm, entryFee: Number(e.target.value) })}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-cyan-300 font-mono font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* City & Ground */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">City / Region</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Srinagar"
+                    value={tForm.city}
+                    onChange={(e) => setTForm({ ...tForm, city: e.target.value })}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Stadium / Ground Venue</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Pinjoora Sports Stadium"
+                    value={tForm.ground}
+                    onChange={(e) => setTForm({ ...tForm, ground: e.target.value })}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Start & End Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Tournament Start Date</label>
+                  <input
+                    type="date"
+                    value={tForm.startDate}
+                    onChange={(e) => setTForm({ ...tForm, startDate: e.target.value })}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Tournament End Date</label>
+                  <input
+                    type="date"
+                    value={tForm.endDate}
+                    onChange={(e) => setTForm({ ...tForm, endDate: e.target.value })}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Contact Email & Mobile */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Contact Email</label>
+                  <input
+                    type="email"
+                    placeholder="riyazahmadganaie610@gmail.com"
+                    value={tForm.contactEmail}
+                    onChange={(e) => setTForm({ ...tForm, contactEmail: e.target.value })}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Contact Mobile / WhatsApp</label>
+                  <input
+                    type="text"
+                    placeholder="7780807508"
+                    value={tForm.contactPhone}
+                    onChange={(e) => setTForm({ ...tForm, contactPhone: e.target.value })}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Playing Conditions & Rules */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Rules & Tournament Playing Conditions</label>
+                <textarea
+                  rows={2}
+                  placeholder="Powerplay overs, super over rules, boundary limits, match timings..."
+                  value={tForm.rules}
+                  onChange={(e) => setTForm({ ...tForm, rules: e.target.value })}
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowTournamentModal(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black rounded-xl text-xs shadow-lg shadow-emerald-500/20 transition-all"
+                >
+                  {editingTournament ? 'Save Changes' : 'Create Tournament'}
+                </button>
               </div>
             </form>
           </div>
