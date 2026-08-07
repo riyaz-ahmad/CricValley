@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, Plus, Shield, Users, Calendar, Edit3, Trash2, CheckCircle2, Table, Zap, X, PlusCircle, Award, Activity } from 'lucide-react';
+import { Trophy, Plus, Shield, Users, Calendar, Edit3, Trash2, CheckCircle2, Table, Zap, X, PlusCircle, Award, Activity, Circle } from 'lucide-react';
 import { Tournament, Team, Player, Match } from '../../types';
 import { apiRequest } from '../../services/api';
 import { storage } from '../../services/storage';
@@ -896,20 +896,47 @@ export const AdminDashboardPage: React.FC = () => {
                         onClick={() => {
                           setResultMatch(m);
                           const matchedPlayers = players.filter((p) => p.teamId === m.homeTeamId || p.teamId === m.awayTeamId);
+                          
+                          const homeInn = m.innings?.find((i) => i.battingTeamId === m.homeTeamId) || m.innings?.find((i) => i.inningNumber === 1);
+                          const awayInn = m.innings?.find((i) => i.battingTeamId === m.awayTeamId) || m.innings?.find((i) => i.inningNumber === 2);
+
+                          const homeRuns = homeInn ? homeInn.totalRuns : 0;
+                          const homeWkts = homeInn ? homeInn.wickets : 0;
+                          const homeOvs = homeInn ? homeInn.overs : 0;
+
+                          const awayRuns = awayInn ? awayInn.totalRuns : 0;
+                          const awayWkts = awayInn ? awayInn.wickets : 0;
+                          const awayOvs = awayInn ? awayInn.overs : 0;
+
+                          let calculatedWinnerId = m.winnerTeamId || m.homeTeamId;
+                          let calculatedSummary = m.resultSummary || '';
+
+                          if (!calculatedSummary && (homeRuns > 0 || awayRuns > 0)) {
+                            if (homeRuns > awayRuns) {
+                              calculatedWinnerId = m.homeTeamId;
+                              calculatedSummary = `${m.homeTeam.name} won by ${homeRuns - awayRuns} runs`;
+                            } else if (awayRuns > homeRuns) {
+                              calculatedWinnerId = m.awayTeamId;
+                              calculatedSummary = `${m.awayTeam.name} won by ${10 - awayWkts} wickets`;
+                            } else if (homeRuns > 0 && awayRuns === homeRuns) {
+                              calculatedSummary = `Match Tied (Super Over)`;
+                            }
+                          }
+
                           setResForm({
                             status: m.status || 'COMPLETED',
                             stage: m.stage,
                             tossWinnerId: m.tossWinnerId || m.homeTeamId,
                             tossDecision: m.tossDecision || 'BAT',
-                            winnerTeamId: m.winnerTeamId || m.homeTeamId,
+                            winnerTeamId: calculatedWinnerId,
                             playerOfTheMatchId: m.playerOfTheMatchId || (matchedPlayers[0]?.id || ''),
-                            resultSummary: m.resultSummary || `${m.homeTeam.shortName} won by 15 runs`,
-                            homeScoreRuns: m.innings?.find((i) => i.inningNumber === 1)?.totalRuns || 180,
-                            homeWickets: m.innings?.find((i) => i.inningNumber === 1)?.wickets || 4,
-                            homeOvers: m.innings?.find((i) => i.inningNumber === 1)?.overs || 20,
-                            awayScoreRuns: m.innings?.find((i) => i.inningNumber === 2)?.totalRuns || 165,
-                            awayWickets: m.innings?.find((i) => i.inningNumber === 2)?.wickets || 8,
-                            awayOvers: m.innings?.find((i) => i.inningNumber === 2)?.overs || 20,
+                            resultSummary: calculatedSummary || `${m.homeTeam.shortName} vs ${m.awayTeam.shortName}`,
+                            homeScoreRuns: homeRuns,
+                            homeWickets: homeWkts,
+                            homeOvers: homeOvs,
+                            awayScoreRuns: awayRuns,
+                            awayWickets: awayWkts,
+                            awayOvers: awayOvs,
                           });
                           setShowResultModal(true);
                         }}
@@ -935,18 +962,23 @@ export const AdminDashboardPage: React.FC = () => {
       {/* MATCH RESULT & MAN OF THE MATCH MODAL */}
       {showResultModal && resultMatch && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-heading font-black text-white flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-amber-400" /> Update Result & Declare Man of the Match
-            </h3>
-            <p className="text-xs text-slate-400">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-xl font-heading font-black text-white flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-amber-400" /> Match Status & Result Management
+              </h3>
+              <button onClick={() => setShowResultModal(false)} className="text-slate-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-xs font-bold text-emerald-400">
               {resultMatch.homeTeam.name} vs {resultMatch.awayTeam.name}
             </p>
 
             <form onSubmit={handleSaveMatchResult} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase mb-1">Match Tag / Stage</label>
+                  <label className="block text-xs font-bold text-slate-300 uppercase mb-1">Match Stage / Tag</label>
                   <select
                     value={resForm.stage}
                     onChange={(e) => setResForm({ ...resForm, stage: e.target.value })}
@@ -960,11 +992,11 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase mb-1">Match Status</label>
+                  <label className="block text-xs font-bold text-slate-300 uppercase mb-1">Set Match Status *</label>
                   <select
                     value={resForm.status}
                     onChange={(e) => setResForm({ ...resForm, status: e.target.value })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-medium"
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-bold"
                   >
                     <option value="LIVE">ONGOING (In Progress)</option>
                     <option value="COMPLETED">COMPLETED (Finished)</option>
@@ -973,7 +1005,7 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Toss Winner & Toss Decision */}
+              {/* Toss Information */}
               <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-2">
                 <div className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                   🪙 Toss Information & Decision:
@@ -1005,74 +1037,106 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Home Team Score */}
-              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
-                <div className="text-xs font-bold text-emerald-400 uppercase">{resultMatch.homeTeam.name} Score:</div>
-                <div className="grid grid-cols-3 gap-2">
-                  <input type="number" placeholder="Runs" value={resForm.homeScoreRuns} onChange={(e) => setResForm({ ...resForm, homeScoreRuns: Number(e.target.value) })} className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" />
-                  <input type="number" placeholder="Wickets" value={resForm.homeWickets} onChange={(e) => setResForm({ ...resForm, homeWickets: Number(e.target.value) })} className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" />
-                  <input type="number" step="0.1" placeholder="Overs" value={resForm.homeOvers} onChange={(e) => setResForm({ ...resForm, homeOvers: Number(e.target.value) })} className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" />
+              {/* ONGOING vs COMPLETED Dynamic Flow */}
+              {resForm.status === 'LIVE' ? (
+                <div className="bg-gradient-to-r from-amber-950/80 to-slate-950 p-4 rounded-2xl border border-amber-500/40 text-center space-y-2">
+                  <div className="text-xs font-black text-amber-400 uppercase flex items-center justify-center gap-1.5">
+                    <Circle className="w-2.5 h-2.5 fill-current text-red-500 animate-pulse" /> ONGOING Match Mode Active
+                  </div>
+                  <p className="text-xs text-slate-300">
+                    No manual scores or winner entry needed! Open the <strong>Live Scorer Console</strong> to record ball-by-ball actions, boundaries, and wickets in real-time.
+                  </p>
+                  <Link
+                    to={`/admin/scorer/${resultMatch.id}`}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs shadow-lg mt-1"
+                  >
+                    <Activity className="w-4 h-4" /> Open Live Scorer Console
+                  </Link>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-3 bg-emerald-950/60 border border-emerald-800/60 rounded-2xl text-xs text-emerald-300 font-semibold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Scores automatically calculated from Live Scorer innings data. Adjust if needed:</span>
+                  </div>
 
-              {/* Away Team Score */}
-              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
-                <div className="text-xs font-bold text-emerald-400 uppercase">{resultMatch.awayTeam.name} Score:</div>
-                <div className="grid grid-cols-3 gap-2">
-                  <input type="number" placeholder="Runs" value={resForm.awayScoreRuns} onChange={(e) => setResForm({ ...resForm, awayScoreRuns: Number(e.target.value) })} className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" />
-                  <input type="number" placeholder="Wickets" value={resForm.awayWickets} onChange={(e) => setResForm({ ...resForm, awayWickets: Number(e.target.value) })} className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" />
-                  <input type="number" step="0.1" placeholder="Overs" value={resForm.awayOvers} onChange={(e) => setResForm({ ...resForm, awayOvers: Number(e.target.value) })} className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" />
+                  {/* Home Team Score */}
+                  <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+                    <div className="text-xs font-bold text-emerald-400 uppercase flex items-center justify-between">
+                      <span>{resultMatch.homeTeam.name} Final Score:</span>
+                      <span className="font-mono text-white text-xs">{resForm.homeScoreRuns}/{resForm.homeWickets} ({resForm.homeOvers} ov)</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <input type="number" placeholder="Runs" value={resForm.homeScoreRuns} onChange={(e) => setResForm({ ...resForm, homeScoreRuns: Number(e.target.value) })} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-mono font-bold" />
+                      <input type="number" placeholder="Wickets" value={resForm.homeWickets} onChange={(e) => setResForm({ ...resForm, homeWickets: Number(e.target.value) })} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-mono font-bold" />
+                      <input type="number" step="0.1" placeholder="Overs" value={resForm.homeOvers} onChange={(e) => setResForm({ ...resForm, homeOvers: Number(e.target.value) })} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-mono font-bold" />
+                    </div>
+                  </div>
+
+                  {/* Away Team Score */}
+                  <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+                    <div className="text-xs font-bold text-emerald-400 uppercase flex items-center justify-between">
+                      <span>{resultMatch.awayTeam.name} Final Score:</span>
+                      <span className="font-mono text-white text-xs">{resForm.awayScoreRuns}/{resForm.awayWickets} ({resForm.awayOvers} ov)</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <input type="number" placeholder="Runs" value={resForm.awayScoreRuns} onChange={(e) => setResForm({ ...resForm, awayScoreRuns: Number(e.target.value) })} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-mono font-bold" />
+                      <input type="number" placeholder="Wickets" value={resForm.awayWickets} onChange={(e) => setResForm({ ...resForm, awayWickets: Number(e.target.value) })} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-mono font-bold" />
+                      <input type="number" step="0.1" placeholder="Overs" value={resForm.awayOvers} onChange={(e) => setResForm({ ...resForm, awayOvers: Number(e.target.value) })} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-mono font-bold" />
+                    </div>
+                  </div>
+
+                  {/* Winner Selector */}
+                  <div>
+                    <label className="block text-xs font-bold text-amber-400 uppercase mb-1">Declared Winner Team</label>
+                    <select
+                      value={resForm.winnerTeamId}
+                      onChange={(e) => setResForm({ ...resForm, winnerTeamId: e.target.value })}
+                      className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-bold"
+                    >
+                      <option value={resultMatch.homeTeamId}>{resultMatch.homeTeam.name}</option>
+                      <option value={resultMatch.awayTeamId}>{resultMatch.awayTeam.name}</option>
+                    </select>
+                  </div>
+
+                  {/* Result Summary Note */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase mb-1">Official Result Summary</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Kolkata Knights won by 15 runs"
+                      value={resForm.resultSummary}
+                      onChange={(e) => setResForm({ ...resForm, resultSummary: e.target.value })}
+                      className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-bold"
+                    />
+                  </div>
+
+                  {/* Man of the Match Selector */}
+                  <div>
+                    <label className="block text-xs font-bold text-emerald-400 uppercase mb-1 flex items-center gap-1">
+                      <Award className="w-3.5 h-3.5" /> Declare Player of the Match (M.O.M)
+                    </label>
+                    <select
+                      value={resForm.playerOfTheMatchId}
+                      onChange={(e) => setResForm({ ...resForm, playerOfTheMatchId: e.target.value })}
+                      className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-bold"
+                    >
+                      <option value="">-- Select Player of Match --</option>
+                      {players
+                        .filter((p) => p.teamId === resultMatch.homeTeamId || p.teamId === resultMatch.awayTeamId)
+                        .map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} ({p.team?.shortName || 'Player'})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Winner Selector */}
-              <div>
-                <label className="block text-xs font-bold text-amber-400 uppercase mb-1">Declare Winning Team</label>
-                <select
-                  value={resForm.winnerTeamId}
-                  onChange={(e) => setResForm({ ...resForm, winnerTeamId: e.target.value })}
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-bold"
-                >
-                  <option value={resultMatch.homeTeamId}>{resultMatch.homeTeam.name}</option>
-                  <option value={resultMatch.awayTeamId}>{resultMatch.awayTeam.name}</option>
-                </select>
-              </div>
-
-              {/* Man of the Match Selector */}
-              <div>
-                <label className="block text-xs font-bold text-emerald-400 uppercase mb-1 flex items-center gap-1">
-                  <Award className="w-3.5 h-3.5" /> Declare Man of the Match (M.O.M)
-                </label>
-                <select
-                  value={resForm.playerOfTheMatchId}
-                  onChange={(e) => setResForm({ ...resForm, playerOfTheMatchId: e.target.value })}
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-bold"
-                >
-                  <option value="">-- Select Player of Match --</option>
-                  {players
-                    .filter((p) => p.teamId === resultMatch.homeTeamId || p.teamId === resultMatch.awayTeamId)
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.team?.shortName || 'Player'})
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase mb-1">Result Summary Note</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Mumbai Strikers won by 15 runs"
-                  value={resForm.resultSummary}
-                  onChange={(e) => setResForm({ ...resForm, resultSummary: e.target.value })}
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
                 <button type="button" onClick={() => setShowResultModal(false)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold">Cancel</button>
-                <button type="submit" className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs shadow-lg">Save Result & M.O.M Award</button>
+                <button type="submit" className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs shadow-lg">Save Status & Result</button>
               </div>
             </form>
           </div>
