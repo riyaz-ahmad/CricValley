@@ -4,8 +4,8 @@ import { Trophy, Lock, Mail, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('admin@cricket.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -50,6 +50,7 @@ export const LoginPage: React.FC = () => {
               <input
                 type="email"
                 required
+                placeholder="admin@cricket.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-medium"
@@ -64,6 +65,7 @@ export const LoginPage: React.FC = () => {
               <input
                 type="password"
                 required
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-medium"
@@ -79,10 +81,6 @@ export const LoginPage: React.FC = () => {
             {loading ? 'Authenticating...' : 'Sign In to Admin Hub'} <ArrowRight className="w-4 h-4" />
           </button>
         </form>
-
-        <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-[11px] text-slate-400 text-center">
-          Default Credentials: <strong className="text-emerald-400">admin@cricket.com</strong> / <strong className="text-emerald-400">admin123</strong>
-        </div>
       </div>
     </div>
   );
