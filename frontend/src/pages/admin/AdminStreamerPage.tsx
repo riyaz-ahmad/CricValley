@@ -348,12 +348,11 @@ export const AdminStreamerPage: React.FC = () => {
                         alert('Please paste your YouTube or Facebook Stream Key first!');
                         return;
                       }
-                      setIsLiveBroadcasting(true);
-                      if (platform === 'YOUTUBE') {
-                        window.open('https://studio.youtube.com/live', '_blank');
-                      } else {
-                        window.open('https://www.facebook.com/live/producer', '_blank');
+                      if (!stream) {
+                        alert('Please click "Turn On Cam" to enable your camera feed first!');
+                        return;
                       }
+                      setIsLiveBroadcasting(true);
                     }}
                     className={`w-full py-3.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl transition-all transform hover:-translate-y-0.5 ${
                       platform === 'YOUTUBE'
@@ -361,7 +360,7 @@ export const AdminStreamerPage: React.FC = () => {
                         : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-600/30'
                     }`}
                   >
-                    <Play className="w-4 h-4 fill-current" />
+                    <Play className="w-4 h-4 fill-current animate-pulse" />
                     🔴 START STREAMING TO {platform === 'YOUTUBE' ? 'YOUTUBE LIVE' : 'FACEBOOK LIVE'}
                   </button>
                 ) : (
@@ -369,9 +368,9 @@ export const AdminStreamerPage: React.FC = () => {
                     <div className="p-3 bg-red-950/80 border border-red-500/60 rounded-xl flex items-center justify-between text-xs text-red-300 font-bold animate-pulse">
                       <span className="flex items-center gap-2">
                         <Circle className="w-3 h-3 fill-current text-red-500" />
-                        BROADCAST ACTIVE ON {platform}
+                        BROADCAST SESSION ACTIVE
                       </span>
-                      <span className="text-[10px] font-mono bg-red-900/60 px-2 py-0.5 rounded text-white">LIVE</span>
+                      <span className="text-[10px] font-mono bg-red-900/60 px-2 py-0.5 rounded text-white">ONLINE</span>
                     </div>
 
                     <button
@@ -396,14 +395,103 @@ export const AdminStreamerPage: React.FC = () => {
               <div className="p-3 bg-amber-950/40 border border-amber-800/40 rounded-xl text-[11px] text-amber-300 font-medium leading-relaxed space-y-1">
                 <p>💡 <strong>How Data Reaches YouTube/Facebook:</strong></p>
                 <p className="text-[10px] text-amber-200/80">
-                  1. Paste your Stream Key & click <strong>START STREAMING</strong> to launch YouTube Studio.<br />
-                  2. For 60FPS pro video quality, paste the <strong>Overlay Link</strong> ({obsOverlayUrl}) into OBS Studio as a <em>Browser Source</em> and start streaming!
+                  1. Enter your Stream Key & click <strong>START STREAMING</strong>.<br />
+                  2. For 60FPS broadcast quality, copy the <strong>Overlay Link</strong> into OBS Studio as a <em>Browser Source</em> and click Start Streaming!
                 </p>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* LIVE BROADCASTING ACTIVE MODAL */}
+      {isLiveBroadcasting && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-red-500/50 rounded-3xl p-6 max-w-lg w-full space-y-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-red-950 border border-red-500/40 rounded-xl text-red-500">
+                  <Circle className="w-5 h-5 fill-current animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-base font-heading font-black text-white uppercase">
+                    Live Broadcast Active ({platform})
+                  </h3>
+                  <p className="text-xs text-slate-400">Match score overlay is live synced to your stream feed</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsLiveBroadcasting(false)}
+                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl text-xs font-bold"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-2 font-mono">
+                <div className="flex justify-between text-slate-400">
+                  <span>Target Platform:</span>
+                  <span className="text-white font-bold">{platform} LIVE</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Server RTMP:</span>
+                  <span className="text-emerald-400 truncate max-w-[200px]">{rtmpUrl}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Stream Key:</span>
+                  <span className="text-amber-400 font-mono">••••••••{streamKey.slice(-4)}</span>
+                </div>
+                <div className="flex justify-between text-slate-400 pt-2 border-t border-slate-800">
+                  <span>Overlay Graphics:</span>
+                  <span className="text-cyan-400 font-bold">1080p Transparent Active</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-bold text-white uppercase text-[11px]">Choose Your Broadcast Transmission Mode:</h4>
+                
+                <div className="grid grid-cols-1 gap-2">
+                  <a
+                    href={platform === 'YOUTUBE' ? 'https://studio.youtube.com/live' : 'https://www.facebook.com/live/producer'}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl flex items-center justify-between shadow-lg transition-all"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Youtube className="w-4 h-4" /> 1. Open {platform === 'YOUTUBE' ? 'YouTube Live Dashboard' : 'Facebook Live'} Control Room
+                    </span>
+                    <span className="text-[10px] font-mono underline">GO TO STUDIO ↗</span>
+                  </a>
+
+                  <button
+                    onClick={copyObsLink}
+                    className="p-3 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/40 font-bold rounded-xl flex items-center justify-between shadow-lg transition-all"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Copy className="w-4 h-4 text-emerald-400" /> 2. Copy OBS Overlay URL ({obsOverlayUrl})
+                    </span>
+                    <span className="text-[10px] font-mono">{copiedObsLink ? 'COPIED! ✓' : 'COPY LINK'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-950 border border-amber-500/30 rounded-xl text-slate-300 text-[11px] leading-relaxed">
+                ✅ <strong>Everything is Set Up!</strong> Any ball event recorded in the Scorer Console will immediately display on your YouTube/Facebook Live camera stream graphics in real-time.
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={() => setIsLiveBroadcasting(false)}
+                className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs"
+              >
+                Done / Hide Modal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
