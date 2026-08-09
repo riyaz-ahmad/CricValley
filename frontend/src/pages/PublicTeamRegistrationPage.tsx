@@ -383,8 +383,17 @@ export const PublicTeamRegistrationPage: React.FC = () => {
             <div className="space-y-2">
               {playersList.map((player, idx) => (
                 <div key={idx} className="p-3 bg-slate-950 border border-slate-800 rounded-2xl grid grid-cols-1 sm:grid-cols-12 gap-2 items-center text-xs">
-                  <div className="sm:col-span-1 text-slate-400 font-mono font-bold text-center">
-                    #{idx + 1}
+                  <div className="sm:col-span-1 text-slate-400 font-mono font-bold flex items-center justify-between sm:justify-center">
+                    <span>Player #{idx + 1}</span>
+                    {playersList.length > 11 && (
+                      <button
+                        type="button"
+                        onClick={() => removePlayerRow(idx)}
+                        className="sm:hidden p-1 text-slate-500 hover:text-red-400 rounded-lg flex items-center gap-1 text-[10px] text-red-400"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Remove
+                      </button>
+                    )}
                   </div>
 
                   <div className="sm:col-span-4">
@@ -421,7 +430,7 @@ export const PublicTeamRegistrationPage: React.FC = () => {
                     </select>
                   </div>
 
-                  <div className="sm:col-span-1 flex justify-center">
+                  <div className="hidden sm:flex sm:col-span-1 justify-center">
                     {playersList.length > 11 && (
                       <button
                         type="button"

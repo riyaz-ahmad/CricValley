@@ -527,13 +527,13 @@ export const AdminScorerPage: React.FC = () => {
           {/* Quick Run Selection */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-slate-300 uppercase">Runs Scored on Ball:</label>
-            <div className="grid grid-cols-6 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5 sm:gap-3">
               {[0, 1, 2, 3, 4, 6].map((run) => (
                 <button
                   key={run}
                   type="button"
                   onClick={() => setSelectedRuns(run)}
-                  className={`py-3.5 rounded-2xl font-black text-base transition-all border ${
+                  className={`py-3.5 sm:py-3 rounded-2xl font-black text-base sm:text-lg transition-all border ${
                     selectedRuns === run
                       ? run === 6
                         ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/30 scale-105'
@@ -552,7 +552,7 @@ export const AdminScorerPage: React.FC = () => {
           {/* Extra Types */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-slate-300 uppercase">Extras / Penalties:</label>
-            <div className="grid grid-cols-5 gap-2 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
               {(['NONE', 'WIDE', 'NO_BALL', 'BYE', 'LEG_BYE'] as const).map((ex) => (
                 <button
                   key={ex}

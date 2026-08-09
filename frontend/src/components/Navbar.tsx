@@ -130,12 +130,13 @@ export const Navbar: React.FC = () => {
 
         {/* Mobile Dropdown */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-800 bg-slate-950 px-4 pt-2 pb-4 space-y-1">
-            <Link to="/tournaments" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-300 hover:bg-slate-800">Tournaments</Link>
-            <Link to="/teams" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-300 hover:bg-slate-800">Teams</Link>
-            <Link to="/matches" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-300 hover:bg-slate-800">Matches & Scores</Link>
+          <div className="md:hidden border-t border-slate-800 bg-slate-950 px-4 pt-3 pb-5 space-y-2">
+            <Link to="/tournaments" onClick={() => setIsMobileMenuOpen(false)} className="block px-3.5 py-2.5 rounded-xl text-sm font-bold text-slate-300 hover:bg-slate-800">🏆 Tournaments</Link>
+            <Link to="/teams" onClick={() => setIsMobileMenuOpen(false)} className="block px-3.5 py-2.5 rounded-xl text-sm font-bold text-slate-300 hover:bg-slate-800">🛡️ Teams</Link>
+            <Link to="/matches" onClick={() => setIsMobileMenuOpen(false)} className="block px-3.5 py-2.5 rounded-xl text-sm font-bold text-slate-300 hover:bg-slate-800">📅 Matches & Scores</Link>
+            <Link to="/register-team" onClick={() => setIsMobileMenuOpen(false)} className="block px-3.5 py-2.5 rounded-xl text-sm font-black text-cyan-300 bg-cyan-950/80 border border-cyan-800">📝 Register Team</Link>
             {user && (
-              <Link to="/admin/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 rounded-xl text-sm font-bold text-amber-400 hover:bg-amber-950">Admin Hub</Link>
+              <Link to="/admin/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="block px-3.5 py-2.5 rounded-xl text-sm font-bold text-amber-400 bg-amber-950/60 border border-amber-800">📊 Admin Hub</Link>
             )}
           </div>
         )}
