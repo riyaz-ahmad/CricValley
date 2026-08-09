@@ -4,15 +4,18 @@ import { Camera, Video, Play, Square, Settings, Copy, Check, ArrowLeft, RefreshC
 import { Match } from '../../types';
 import { apiRequest } from '../../services/api';
 import { storage } from '../../services/storage';
+import { useSocket } from '../../context/SocketContext';
 
 export const AdminStreamerPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [match, setMatch] = useState<Match | null>(null);
   const [loading, setLoading] = useState(true);
+  const { socket } = useSocket();
 
   // Camera & Video state
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
@@ -24,6 +27,7 @@ export const AdminStreamerPage: React.FC = () => {
   const [streamKey, setStreamKey] = useState<string>('');
   const [rtmpUrl, setRtmpUrl] = useState<string>('rtmp://a.rtmp.youtube.com/live2');
   const [isLiveBroadcasting, setIsLiveBroadcasting] = useState<boolean>(false);
+  const [rtmpStatusMessage, setRtmpStatusMessage] = useState<string>('');
 
   const fetchMatch = async () => {
     if (!id) return;
@@ -94,7 +98,68 @@ export const AdminStreamerPage: React.FC = () => {
       setStream(null);
     }
     setIsStreamingLocally(false);
+    stopBroadcast();
   };
+
+  const startBroadcast = () => {
+    if (!streamKey.trim()) {
+      alert('Please paste your YouTube or Facebook Stream Key first!');
+      return;
+    }
+    if (!stream) {
+      alert('Please click "Turn On Cam" to enable your camera feed first!');
+      return;
+    }
+
+    setIsLiveBroadcasting(true);
+    setRtmpStatusMessage('Connecting live video feed to server...');
+
+    if (socket) {
+      socket.emit('start_rtmp_broadcast', { rtmpUrl, streamKey });
+
+      try {
+        const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' });
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0 && socket) {
+            socket.emit('rtmp_video_chunk', e.data);
+          }
+        };
+        recorder.start(1000);
+        mediaRecorderRef.current = recorder;
+      } catch (err: any) {
+        console.warn('MediaRecorder error:', err);
+      }
+    }
+  };
+
+  const stopBroadcast = () => {
+    setIsLiveBroadcasting(false);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) {}
+    }
+    if (socket) {
+      socket.emit('stop_rtmp_broadcast');
+    }
+  };
+
+  useEffect(() => {
+    if (socket) {
+      socket.on('rtmp_status', (data: any) => {
+        if (data.status === 'broadcasting') {
+          setRtmpStatusMessage('🟢 BROADCAST LIVE TRANSMITTING TO YOUTUBE!');
+        } else if (data.status === 'error') {
+          setRtmpStatusMessage(`⚠️ Note: ${data.message}`);
+        } else if (data.status === 'stopped') {
+          setRtmpStatusMessage('Broadcast Session Closed.');
+        }
+      });
+    }
+    return () => {
+      if (socket) socket.off('rtmp_status');
+    };
+  }, [socket]);
 
   const obsOverlayUrl = `${window.location.origin}/overlay/${id}`;
 
@@ -343,17 +408,7 @@ export const AdminStreamerPage: React.FC = () => {
               <div className="pt-2 space-y-2">
                 {!isLiveBroadcasting ? (
                   <button
-                    onClick={() => {
-                      if (!streamKey.trim()) {
-                        alert('Please paste your YouTube or Facebook Stream Key first!');
-                        return;
-                      }
-                      if (!stream) {
-                        alert('Please click "Turn On Cam" to enable your camera feed first!');
-                        return;
-                      }
-                      setIsLiveBroadcasting(true);
-                    }}
+                    onClick={startBroadcast}
                     className={`w-full py-3.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl transition-all transform hover:-translate-y-0.5 ${
                       platform === 'YOUTUBE'
                         ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-red-600/30'
@@ -373,8 +428,14 @@ export const AdminStreamerPage: React.FC = () => {
                       <span className="text-[10px] font-mono bg-red-900/60 px-2 py-0.5 rounded text-white">ONLINE</span>
                     </div>
 
+                    {rtmpStatusMessage && (
+                      <div className="p-2 bg-slate-950 border border-slate-800 rounded-lg text-[10px] text-amber-300 font-mono">
+                        {rtmpStatusMessage}
+                      </div>
+                    )}
+
                     <button
-                      onClick={() => setIsLiveBroadcasting(false)}
+                      onClick={stopBroadcast}
                       className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs flex items-center justify-center gap-2"
                     >
                       <Square className="w-3.5 h-3.5 fill-current text-red-400" /> End Broadcast Session
