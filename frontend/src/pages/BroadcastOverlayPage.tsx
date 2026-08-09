@@ -72,7 +72,7 @@ export const BroadcastOverlayPage: React.FC = () => {
     };
   }, [id, socket]);
 
-  if (!match) return <div className="p-4 text-xs text-emerald-400 font-bold bg-black/40">Loading Broadcast Overlay...</div>;
+  if (!match) return <div className="w-screen h-screen bg-transparent"></div>;
 
   const inn1 = match.innings?.find((i) => i.inningNumber === 1);
   const inn2 = match.innings?.find((i) => i.inningNumber === 2);

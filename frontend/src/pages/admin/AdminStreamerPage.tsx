@@ -246,18 +246,23 @@ export const AdminStreamerPage: React.FC = () => {
 
             {/* Video Viewport Container */}
             <div className="relative aspect-video bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 shadow-inner flex items-center justify-center">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-              />
-
-              {!isStreamingLocally && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-slate-950/90 space-y-3">
-                  <Video className="w-12 h-12 text-slate-600 animate-pulse" />
-                  <p className="text-xs text-slate-400 font-medium">Click "Turn On Cam" to initialize device camera feed</p>
+              {/* Optional Camera Feed */}
+              {isStreamingLocally ? (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-[#0d1117] flex flex-col items-center justify-center text-center p-6 space-y-2">
+                  <div className="px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-[11px] font-black uppercase tracking-wider">
+                    ✨ 100% Transparent Lower-Third Overlay Ready
+                  </div>
+                  <p className="text-xs text-slate-400 max-w-sm">
+                    In PRISM Live / OBS, paste the Overlay Link. It renders <strong>ONLY the scorecard graphics at the bottom</strong> over your camera feed!
+                  </p>
                 </div>
               )}
 
