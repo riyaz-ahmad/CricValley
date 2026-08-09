@@ -334,19 +334,20 @@ export const AdminStreamerPage: React.FC = () => {
           {/* Method 1: OBS Studio Transparent Overlay URL */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-3 shadow-xl">
             <h3 className="text-sm font-heading font-black text-white flex items-center gap-2">
-              <Zap className="w-4 h-4 text-amber-400" /> OBS / Streamyard Overlay Link
+              <Zap className="w-4 h-4 text-amber-400" /> OBS / PRISM Live Overlay Link (Recommended)
             </h3>
-            <p className="text-xs text-slate-400">
-              Copy this transparent Browser Source link and paste it into **OBS Studio**, **vMix**, or **PRISM Live** to stream to YouTube & Facebook with 4K camera quality!
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Copy this transparent Browser Source link and paste it into **OBS Studio**, **vMix**, or **PRISM Live** to stream camera + scoreboard to YouTube & Facebook in HD quality!
             </p>
 
             <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between text-xs font-mono text-emerald-400 truncate">
               <span className="truncate">{obsOverlayUrl}</span>
               <button
                 onClick={copyObsLink}
-                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg shrink-0 ml-2"
+                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg shrink-0 ml-2 font-sans font-bold flex items-center gap-1"
               >
                 {copiedObsLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                {copiedObsLink ? 'Copied!' : 'Copy'}
               </button>
             </div>
           </div>
