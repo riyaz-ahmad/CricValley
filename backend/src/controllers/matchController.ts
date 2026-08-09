@@ -225,7 +225,7 @@ export const updateMatch = async (req: Request, res: Response) => {
             bowlingTeamId: match.awayTeamId,
             totalRuns: Number(homeScoreRuns),
             wickets: Number(homeWickets || 0),
-            overs: Number(homeOvers || 20),
+            overs: homeOvers !== undefined ? Number(homeOvers) : 0,
             isCompleted: status === 'COMPLETED',
           },
         });
@@ -235,7 +235,7 @@ export const updateMatch = async (req: Request, res: Response) => {
           data: {
             totalRuns: Number(homeScoreRuns),
             wickets: Number(homeWickets || 0),
-            overs: Number(homeOvers || 20),
+            overs: homeOvers !== undefined ? Number(homeOvers) : 0,
             isCompleted: status === 'COMPLETED',
           },
         });
@@ -253,7 +253,7 @@ export const updateMatch = async (req: Request, res: Response) => {
             bowlingTeamId: match.homeTeamId,
             totalRuns: Number(awayScoreRuns),
             wickets: Number(awayWickets || 0),
-            overs: Number(awayOvers || 20),
+            overs: awayOvers !== undefined ? Number(awayOvers) : 0,
             isCompleted: status === 'COMPLETED',
           },
         });
@@ -263,7 +263,7 @@ export const updateMatch = async (req: Request, res: Response) => {
           data: {
             totalRuns: Number(awayScoreRuns),
             wickets: Number(awayWickets || 0),
-            overs: Number(awayOvers || 20),
+            overs: awayOvers !== undefined ? Number(awayOvers) : 0,
             isCompleted: status === 'COMPLETED',
           },
         });
