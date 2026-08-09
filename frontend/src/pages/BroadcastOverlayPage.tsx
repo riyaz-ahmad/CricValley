@@ -88,7 +88,10 @@ export const BroadcastOverlayPage: React.FC = () => {
     activeInnings.balls.forEach((b) => {
       if (b.strikerId) {
         if (!playerStatsMap[b.strikerId]) playerStatsMap[b.strikerId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
-        playerStatsMap[b.strikerId].runs += b.runs;
+        // Batter runs exclude extras (Wide, Bye, Leg Bye)
+        if (b.extraType !== 'WIDE' && b.extraType !== 'BYE' && b.extraType !== 'LEG_BYE') {
+          playerStatsMap[b.strikerId].runs += b.runs;
+        }
         if (b.extraType !== 'WIDE') playerStatsMap[b.strikerId].balls += 1;
         if (b.runs === 4) playerStatsMap[b.strikerId].fours += 1;
         if (b.runs === 6) playerStatsMap[b.strikerId].sixes += 1;
@@ -97,10 +100,11 @@ export const BroadcastOverlayPage: React.FC = () => {
         if (!bowlerStatsMap[b.bowlerId]) bowlerStatsMap[b.bowlerId] = { balls: 0, runsConceded: 0, wickets: 0 };
         const isLegal = b.extraType !== 'WIDE' && b.extraType !== 'NO_BALL';
         if (isLegal) bowlerStatsMap[b.bowlerId].balls += 1;
-        let wide = b.extraType === 'WIDE' ? 1 : 0;
-        let noBall = b.extraType === 'NO_BALL' ? 1 : 0;
-        bowlerStatsMap[b.bowlerId].runsConceded += b.runs + wide + noBall;
-        if (b.isWicket) bowlerStatsMap[b.bowlerId].wickets += 1;
+        let wide = b.extraType === 'WIDE' ? (1 + b.runs) : 0;
+        let noBall = b.extraType === 'NO_BALL' ? (1 + b.runs) : 0;
+        let runsOnBowler = (b.extraType === 'BYE' || b.extraType === 'LEG_BYE') ? 0 : b.runs;
+        bowlerStatsMap[b.bowlerId].runsConceded += runsOnBowler + wide + noBall;
+        if (b.isWicket && b.wicketType !== 'RUN_OUT') bowlerStatsMap[b.bowlerId].wickets += 1;
       }
     });
   }
@@ -110,13 +114,15 @@ export const BroadcastOverlayPage: React.FC = () => {
   const nonStrikerId = lastBall?.nonStrikerId;
   const bowlerId = lastBall?.bowlerId;
 
-  const strikerPlayer = allPlayers.find((p) => p.id === strikerId) || { name: 'BATTER 1' };
-  const nonStrikerPlayer = allPlayers.find((p) => p.id === nonStrikerId) || { name: 'BATTER 2' };
-  const activeBowlerPlayer = allPlayers.find((p) => p.id === bowlerId) || { name: 'BOWLER' };
+  const strikerPlayer = allPlayers.find((p) => p.id === strikerId) || lastBall?.striker || { name: 'Striker' };
+  const nonStrikerPlayer = allPlayers.find((p) => p.id === nonStrikerId) || { name: 'Non-Striker' };
+  const activeBowlerPlayer = allPlayers.find((p) => p.id === bowlerId) || lastBall?.bowler || { name: 'Bowler' };
 
   const strikerStats = strikerId ? playerStatsMap[strikerId] || { runs: 0, balls: 0 } : { runs: 0, balls: 0 };
   const nonStrikerStats = nonStrikerId ? playerStatsMap[nonStrikerId] || { runs: 0, balls: 0 } : { runs: 0, balls: 0 };
   const activeBowlerStats = bowlerId ? bowlerStatsMap[bowlerId] || { balls: 0, runsConceded: 0, wickets: 0 } : { balls: 0, runsConceded: 0, wickets: 0 };
+
+  const bowlerOversStr = `${Math.floor(activeBowlerStats.balls / 6)}.${activeBowlerStats.balls % 6}`;
 
   // Calculate Run Rate
   const totalRuns = activeInnings?.totalRuns ?? 0;
@@ -203,7 +209,7 @@ export const BroadcastOverlayPage: React.FC = () => {
               <span className="text-[#111]">{activeBowlerPlayer.name}</span>
               <div className="flex items-baseline gap-1 font-mono font-black text-black">
                 <span>{activeBowlerStats.wickets}-{activeBowlerStats.runsConceded}</span>
-                <span className="text-xs text-gray-600 font-bold">({(activeBowlerStats.balls / 6).toFixed(1)})</span>
+                <span className="text-xs text-gray-600 font-bold">({bowlerOversStr})</span>
               </div>
             </div>
 

@@ -104,7 +104,10 @@ export const AdminScorerPage: React.FC = () => {
   const saveUpdatedMatch = (updatedMatch: Match) => {
     setMatch(updatedMatch);
     const allMatches = storage.getMatches();
-    const newMatches = allMatches.map((m) => (m.id === updatedMatch.id ? updatedMatch : m));
+    const exists = allMatches.some((m) => m.id === updatedMatch.id);
+    const newMatches = exists
+      ? allMatches.map((m) => (m.id === updatedMatch.id ? updatedMatch : m))
+      : [...allMatches, updatedMatch];
     storage.saveMatches(newMatches);
 
     // Sync to backend API if available

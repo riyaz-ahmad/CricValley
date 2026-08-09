@@ -49,7 +49,7 @@ export const LiveMatchPage: React.FC = () => {
       liveMatchChannel.onmessage = (ev) => {
         if (ev.data && ev.data.match && ev.data.match.id === id) {
           setMatch(ev.data.match);
-        } else if (ev.data && ev.data.type === 'MATCHES_UPDATED') {
+        } else {
           fetchMatch(false);
         }
       };
@@ -96,7 +96,9 @@ export const LiveMatchPage: React.FC = () => {
     activeInnings.balls.forEach((b) => {
       if (b.strikerId) {
         if (!playerStatsMap[b.strikerId]) playerStatsMap[b.strikerId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
-        playerStatsMap[b.strikerId].runs += b.runs;
+        if (b.extraType !== 'WIDE' && b.extraType !== 'BYE' && b.extraType !== 'LEG_BYE') {
+          playerStatsMap[b.strikerId].runs += b.runs;
+        }
         if (b.extraType !== 'WIDE') playerStatsMap[b.strikerId].balls += 1;
         if (b.runs === 4) playerStatsMap[b.strikerId].fours += 1;
         if (b.runs === 6) playerStatsMap[b.strikerId].sixes += 1;
@@ -105,10 +107,11 @@ export const LiveMatchPage: React.FC = () => {
         if (!bowlerStatsMap[b.bowlerId]) bowlerStatsMap[b.bowlerId] = { balls: 0, runsConceded: 0, wickets: 0 };
         const isLegal = b.extraType !== 'WIDE' && b.extraType !== 'NO_BALL';
         if (isLegal) bowlerStatsMap[b.bowlerId].balls += 1;
-        let wide = b.extraType === 'WIDE' ? 1 : 0;
-        let noBall = b.extraType === 'NO_BALL' ? 1 : 0;
-        bowlerStatsMap[b.bowlerId].runsConceded += b.runs + wide + noBall;
-        if (b.isWicket) bowlerStatsMap[b.bowlerId].wickets += 1;
+        let wide = b.extraType === 'WIDE' ? (1 + b.runs) : 0;
+        let noBall = b.extraType === 'NO_BALL' ? (1 + b.runs) : 0;
+        let runsOnBowler = (b.extraType === 'BYE' || b.extraType === 'LEG_BYE') ? 0 : b.runs;
+        bowlerStatsMap[b.bowlerId].runsConceded += runsOnBowler + wide + noBall;
+        if (b.isWicket && b.wicketType !== 'RUN_OUT') bowlerStatsMap[b.bowlerId].wickets += 1;
       }
     });
   }
@@ -118,9 +121,9 @@ export const LiveMatchPage: React.FC = () => {
   const nonStrikerId = lastBall?.nonStrikerId;
   const bowlerId = lastBall?.bowlerId;
 
-  const strikerPlayer = allPlayers.find((p) => p.id === strikerId);
+  const strikerPlayer = allPlayers.find((p) => p.id === strikerId) || lastBall?.striker;
   const nonStrikerPlayer = allPlayers.find((p) => p.id === nonStrikerId);
-  const activeBowlerPlayer = allPlayers.find((p) => p.id === bowlerId);
+  const activeBowlerPlayer = allPlayers.find((p) => p.id === bowlerId) || lastBall?.bowler;
 
   const strikerStats = strikerId ? playerStatsMap[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : null;
   const nonStrikerStats = nonStrikerId ? playerStatsMap[nonStrikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : null;
