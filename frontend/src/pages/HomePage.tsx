@@ -3,29 +3,70 @@ import { Link } from 'react-router-dom';
 import { Trophy, Calendar, Shield, Users, ArrowRight, Activity, CheckCircle2, Zap, Sparkles, Award } from 'lucide-react';
 import { Tournament, Match, Player } from '../types';
 import { apiRequest } from '../services/api';
+import { storage } from '../services/storage';
+import { useSocket } from '../context/SocketContext';
 
 export const HomePage: React.FC = () => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const { socket } = useSocket();
+
+  const fetchData = async () => {
+    try {
+      const [tRes, mRes] = await Promise.all([
+        apiRequest<Tournament[]>('/tournaments'),
+        apiRequest<Match[]>('/matches'),
+      ]);
+      setTournaments(tRes);
+      
+      const localMatches = storage.getMatches();
+      let mergedMatches = mRes;
+      if (localMatches && localMatches.length > 0) {
+        mergedMatches = mRes.map((m) => {
+          const foundLocal = localMatches.find((lm) => lm.id === m.id);
+          if (foundLocal) {
+            const localBalls = foundLocal.innings?.reduce((acc, inn) => acc + (inn.balls?.length || 0), 0) || 0;
+            const apiBalls = m.innings?.reduce((acc, inn) => acc + (inn.balls?.length || 0), 0) || 0;
+            return localBalls >= apiBalls ? foundLocal : m;
+          }
+          return m;
+        });
+      }
+      setMatches(mergedMatches);
+    } catch (err) {
+      setMatches(storage.getMatches());
+      setTournaments(storage.getTournaments());
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [tRes, mRes] = await Promise.all([
-          apiRequest<Tournament[]>('/tournaments'),
-          apiRequest<Match[]>('/matches'),
-        ]);
-        setTournaments(tRes);
-        setMatches(mRes);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+    fetchData();
+    const interval = setInterval(fetchData, 1000);
+
+    const handleEvent = () => fetchData();
+    window.addEventListener('cricvalley_match_updated', handleEvent);
+    window.addEventListener('storage', handleEvent);
+
+    if (socket) {
+      socket.on('match_updated', handleEvent);
+      socket.on('ball_recorded', handleEvent);
+      socket.on('match_status_changed', handleEvent);
+    }
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('cricvalley_match_updated', handleEvent);
+      window.removeEventListener('storage', handleEvent);
+      if (socket) {
+        socket.off('match_updated', handleEvent);
+        socket.off('ball_recorded', handleEvent);
+        socket.off('match_status_changed', handleEvent);
       }
     };
-    fetchData();
-  }, []);
+  }, [socket]);
 
   const ongoingMatches = matches.filter((m) => m.status === 'LIVE');
   const finishedMatches = matches.filter((m) => m.status === 'COMPLETED');

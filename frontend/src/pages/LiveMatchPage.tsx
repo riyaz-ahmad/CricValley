@@ -5,21 +5,31 @@ import { Match, Player } from '../types';
 import { apiRequest } from '../services/api';
 import { storage } from '../services/storage';
 import { BallTracker } from '../components/BallTracker';
+import { useSocket } from '../context/SocketContext';
 
 export const LiveMatchPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [match, setMatch] = useState<Match | null>(null);
   const [loading, setLoading] = useState(true);
+  const { socket } = useSocket();
 
   const fetchMatch = async () => {
     if (!id) return;
+    const localMatches = storage.getMatches();
+    const localMatch = localMatches.find((m) => m.id === id);
+
     try {
       const res = await apiRequest<Match>(`/matches/${id}`);
-      setMatch(res);
+      const localBallsCount = localMatch?.innings?.reduce((acc, inn) => acc + (inn.balls?.length || 0), 0) || 0;
+      const resBallsCount = res?.innings?.reduce((acc, inn) => acc + (inn.balls?.length || 0), 0) || 0;
+
+      if (localMatch && localBallsCount >= resBallsCount) {
+        setMatch(localMatch);
+      } else {
+        setMatch(res);
+      }
     } catch (err) {
-      const allMatches = storage.getMatches();
-      const found = allMatches.find((m) => m.id === id) || null;
-      setMatch(found);
+      if (localMatch) setMatch(localMatch);
     } finally {
       setLoading(false);
     }
@@ -27,9 +37,29 @@ export const LiveMatchPage: React.FC = () => {
 
   useEffect(() => {
     fetchMatch();
-    const interval = setInterval(fetchMatch, 3000);
-    return () => clearInterval(interval);
-  }, [id]);
+    const interval = setInterval(fetchMatch, 1000);
+
+    const handleEvent = () => fetchMatch();
+    window.addEventListener('cricvalley_match_updated', handleEvent);
+    window.addEventListener('storage', handleEvent);
+
+    if (socket) {
+      socket.on('match_updated', handleEvent);
+      socket.on('ball_recorded', handleEvent);
+      socket.on('match_status_changed', handleEvent);
+    }
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('cricvalley_match_updated', handleEvent);
+      window.removeEventListener('storage', handleEvent);
+      if (socket) {
+        socket.off('match_updated', handleEvent);
+        socket.off('ball_recorded', handleEvent);
+        socket.off('match_status_changed', handleEvent);
+      }
+    };
+  }, [id, socket]);
 
   if (loading || !match) {
     return <div className="py-20 text-center text-slate-400 animate-pulse font-bold">Loading live match scoreboard...</div>;

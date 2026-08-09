@@ -4,11 +4,13 @@ import { Calendar, Activity, Trophy, Circle, CheckCircle, Clock, Award } from 'l
 import { Match } from '../types';
 import { apiRequest } from '../services/api';
 import { storage } from '../services/storage';
+import { useSocket } from '../context/SocketContext';
 
 export const MatchesPage: React.FC = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'LIVE' | 'UPCOMING' | 'COMPLETED'>('ALL');
   const [loading, setLoading] = useState(true);
+  const { socket } = useSocket();
 
   const fetchMatches = async () => {
     setLoading(true);
@@ -23,6 +25,19 @@ export const MatchesPage: React.FC = () => {
         data = data.filter((m) => m.status === statusFilter);
       }
     } finally {
+      // Merge with local storage if local storage has newer data
+      const localMatches = storage.getMatches();
+      if (localMatches && localMatches.length > 0) {
+        data = data.map((m) => {
+          const foundLocal = localMatches.find((lm) => lm.id === m.id);
+          if (foundLocal) {
+            const localBalls = foundLocal.innings?.reduce((acc, inn) => acc + (inn.balls?.length || 0), 0) || 0;
+            const apiBalls = m.innings?.reduce((acc, inn) => acc + (inn.balls?.length || 0), 0) || 0;
+            return localBalls >= apiBalls ? foundLocal : m;
+          }
+          return m;
+        });
+      }
       setMatches(data);
       setLoading(false);
     }
@@ -30,9 +45,29 @@ export const MatchesPage: React.FC = () => {
 
   useEffect(() => {
     fetchMatches();
-    const interval = setInterval(fetchMatches, 3000);
-    return () => clearInterval(interval);
-  }, [statusFilter]);
+    const interval = setInterval(fetchMatches, 1000);
+
+    const handleEvent = () => fetchMatches();
+    window.addEventListener('cricvalley_match_updated', handleEvent);
+    window.addEventListener('storage', handleEvent);
+
+    if (socket) {
+      socket.on('match_updated', handleEvent);
+      socket.on('ball_recorded', handleEvent);
+      socket.on('match_status_changed', handleEvent);
+    }
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('cricvalley_match_updated', handleEvent);
+      window.removeEventListener('storage', handleEvent);
+      if (socket) {
+        socket.off('match_updated', handleEvent);
+        socket.off('ball_recorded', handleEvent);
+        socket.off('match_status_changed', handleEvent);
+      }
+    };
+  }, [statusFilter, socket]);
 
   const getStageTag = (stage: string) => {
     switch (stage) {
