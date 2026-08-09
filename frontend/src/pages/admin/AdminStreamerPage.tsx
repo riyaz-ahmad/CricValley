@@ -23,6 +23,7 @@ export const AdminStreamerPage: React.FC = () => {
   const [platform, setPlatform] = useState<'YOUTUBE' | 'FACEBOOK'>('YOUTUBE');
   const [streamKey, setStreamKey] = useState<string>('');
   const [rtmpUrl, setRtmpUrl] = useState<string>('rtmp://a.rtmp.youtube.com/live2');
+  const [isLiveBroadcasting, setIsLiveBroadcasting] = useState<boolean>(false);
 
   const fetchMatch = async () => {
     if (!id) return;
@@ -338,8 +339,66 @@ export const AdminStreamerPage: React.FC = () => {
                 />
               </div>
 
-              <div className="p-3 bg-amber-950/40 border border-amber-800/40 rounded-xl text-[11px] text-amber-300 font-medium leading-relaxed">
-                💡 <strong>Broadcasting Tip:</strong> For highest 60FPS video quality, open OBS Studio, add Video Capture Source (Camera), add Browser Source URL ({obsOverlayUrl}), enter your Stream Key, and click Start Streaming!
+              {/* GO LIVE BUTTON & STREAM CONTROLS */}
+              <div className="pt-2 space-y-2">
+                {!isLiveBroadcasting ? (
+                  <button
+                    onClick={() => {
+                      if (!streamKey.trim()) {
+                        alert('Please paste your YouTube or Facebook Stream Key first!');
+                        return;
+                      }
+                      setIsLiveBroadcasting(true);
+                      if (platform === 'YOUTUBE') {
+                        window.open('https://studio.youtube.com/live', '_blank');
+                      } else {
+                        window.open('https://www.facebook.com/live/producer', '_blank');
+                      }
+                    }}
+                    className={`w-full py-3.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl transition-all transform hover:-translate-y-0.5 ${
+                      platform === 'YOUTUBE'
+                        ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-red-600/30'
+                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-600/30'
+                    }`}
+                  >
+                    <Play className="w-4 h-4 fill-current" />
+                    🔴 START STREAMING TO {platform === 'YOUTUBE' ? 'YOUTUBE LIVE' : 'FACEBOOK LIVE'}
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="p-3 bg-red-950/80 border border-red-500/60 rounded-xl flex items-center justify-between text-xs text-red-300 font-bold animate-pulse">
+                      <span className="flex items-center gap-2">
+                        <Circle className="w-3 h-3 fill-current text-red-500" />
+                        BROADCAST ACTIVE ON {platform}
+                      </span>
+                      <span className="text-[10px] font-mono bg-red-900/60 px-2 py-0.5 rounded text-white">LIVE</span>
+                    </div>
+
+                    <button
+                      onClick={() => setIsLiveBroadcasting(false)}
+                      className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs flex items-center justify-center gap-2"
+                    >
+                      <Square className="w-3.5 h-3.5 fill-current text-red-400" /> End Broadcast Session
+                    </button>
+                  </div>
+                )}
+
+                <a
+                  href={platform === 'YOUTUBE' ? 'https://studio.youtube.com/live' : 'https://www.facebook.com/live/producer'}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full py-2 px-3 bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-300 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all"
+                >
+                  <Youtube className="w-3.5 h-3.5 text-red-500" /> Open {platform === 'YOUTUBE' ? 'YouTube Live Dashboard' : 'Facebook Live Producer'} ↗
+                </a>
+              </div>
+
+              <div className="p-3 bg-amber-950/40 border border-amber-800/40 rounded-xl text-[11px] text-amber-300 font-medium leading-relaxed space-y-1">
+                <p>💡 <strong>How Data Reaches YouTube/Facebook:</strong></p>
+                <p className="text-[10px] text-amber-200/80">
+                  1. Paste your Stream Key & click <strong>START STREAMING</strong> to launch YouTube Studio.<br />
+                  2. For 60FPS pro video quality, paste the <strong>Overlay Link</strong> ({obsOverlayUrl}) into OBS Studio as a <em>Browser Source</em> and start streaming!
+                </p>
               </div>
             </div>
           </div>
