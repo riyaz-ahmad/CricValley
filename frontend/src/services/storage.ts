@@ -276,5 +276,9 @@ export const storage = {
 
   saveMatches: (items: Match[]) => {
     localStorage.setItem(KEY_MATCHES, JSON.stringify(items));
+    try {
+      window.dispatchEvent(new Event('cricvalley_match_updated'));
+      window.dispatchEvent(new Event('storage'));
+    } catch (e) {}
   },
 };

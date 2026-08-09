@@ -3,10 +3,12 @@ import { useParams } from 'react-router-dom';
 import { Match } from '../types';
 import { apiRequest } from '../services/api';
 import { storage } from '../services/storage';
+import { useSocket } from '../context/SocketContext';
 
 export const BroadcastOverlayPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [match, setMatch] = useState<Match | null>(null);
+  const { socket } = useSocket();
 
   const fetchMatch = async () => {
     if (!id) return;
@@ -22,9 +24,29 @@ export const BroadcastOverlayPage: React.FC = () => {
 
   useEffect(() => {
     fetchMatch();
-    const interval = setInterval(fetchMatch, 2000);
-    return () => clearInterval(interval);
-  }, [id]);
+    const interval = setInterval(fetchMatch, 500);
+
+    const handleEvent = () => fetchMatch();
+    window.addEventListener('cricvalley_match_updated', handleEvent);
+    window.addEventListener('storage', handleEvent);
+
+    if (socket) {
+      socket.on('match_updated', handleEvent);
+      socket.on('ball_recorded', handleEvent);
+      socket.on('match_status_changed', handleEvent);
+    }
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('cricvalley_match_updated', handleEvent);
+      window.removeEventListener('storage', handleEvent);
+      if (socket) {
+        socket.off('match_updated', handleEvent);
+        socket.off('ball_recorded', handleEvent);
+        socket.off('match_status_changed', handleEvent);
+      }
+    };
+  }, [id, socket]);
 
   if (!match) return <div className="p-4 text-xs text-emerald-400 font-bold bg-black/40">Loading Broadcast Overlay...</div>;
 

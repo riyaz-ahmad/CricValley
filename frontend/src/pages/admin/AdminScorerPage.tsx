@@ -5,10 +5,12 @@ import { Match, Player, Innings } from '../../types';
 import { apiRequest } from '../../services/api';
 import { storage } from '../../services/storage';
 import { BallTracker } from '../../components/BallTracker';
+import { useSocket } from '../../context/SocketContext';
 
 export const AdminScorerPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { socket } = useSocket();
 
   const [match, setMatch] = useState<Match | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,6 +96,12 @@ export const AdminScorerPage: React.FC = () => {
     const allMatches = storage.getMatches();
     const newMatches = allMatches.map((m) => (m.id === updatedMatch.id ? updatedMatch : m));
     storage.saveMatches(newMatches);
+    if (socket) {
+      socket.emit('match_updated', updatedMatch);
+      socket.emit('ball_recorded', updatedMatch);
+    }
+    window.dispatchEvent(new Event('cricvalley_match_updated'));
+    window.dispatchEvent(new Event('storage'));
   };
 
   if (loading || !match) {
