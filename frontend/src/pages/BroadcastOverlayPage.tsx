@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Match } from '../types';
 import { apiRequest } from '../services/api';
-import { storage } from '../services/storage';
+import { storage, liveMatchChannel } from '../services/storage';
 import { useSocket } from '../context/SocketContext';
 
 export const BroadcastOverlayPage: React.FC = () => {
@@ -12,13 +12,21 @@ export const BroadcastOverlayPage: React.FC = () => {
 
   const fetchMatch = async () => {
     if (!id) return;
+    const localMatches = storage.getMatches();
+    const localMatch = localMatches.find((m) => m.id === id) || null;
+
     try {
       const res = await apiRequest<Match>(`/matches/${id}`);
-      setMatch(res);
+      const localBallsCount = localMatch?.innings?.reduce((acc, inn) => acc + (inn.balls?.length || 0), 0) || 0;
+      const resBallsCount = res?.innings?.reduce((acc, inn) => acc + (inn.balls?.length || 0), 0) || 0;
+
+      if (localMatch && localBallsCount >= resBallsCount) {
+        setMatch(localMatch);
+      } else {
+        setMatch(res);
+      }
     } catch (err) {
-      const allMatches = storage.getMatches();
-      const found = allMatches.find((m) => m.id === id) || null;
-      setMatch(found);
+      if (localMatch) setMatch(localMatch);
     }
   };
 
@@ -30,9 +38,25 @@ export const BroadcastOverlayPage: React.FC = () => {
     window.addEventListener('cricvalley_match_updated', handleEvent);
     window.addEventListener('storage', handleEvent);
 
+    if (liveMatchChannel) {
+      liveMatchChannel.onmessage = (ev) => {
+        if (ev.data && ev.data.match && ev.data.match.id === id) {
+          setMatch(ev.data.match);
+        } else {
+          fetchMatch();
+        }
+      };
+    }
+
     if (socket) {
-      socket.on('match_updated', handleEvent);
-      socket.on('ball_recorded', handleEvent);
+      socket.on('match_updated', (updatedData: Match) => {
+        if (updatedData && updatedData.id === id) setMatch(updatedData);
+        else fetchMatch();
+      });
+      socket.on('ball_recorded', (updatedData: Match) => {
+        if (updatedData && updatedData.id === id) setMatch(updatedData);
+        else fetchMatch();
+      });
       socket.on('match_status_changed', handleEvent);
     }
 
@@ -41,9 +65,9 @@ export const BroadcastOverlayPage: React.FC = () => {
       window.removeEventListener('cricvalley_match_updated', handleEvent);
       window.removeEventListener('storage', handleEvent);
       if (socket) {
-        socket.off('match_updated', handleEvent);
-        socket.off('ball_recorded', handleEvent);
-        socket.off('match_status_changed', handleEvent);
+        socket.off('match_updated');
+        socket.off('ball_recorded');
+        socket.off('match_status_changed');
       }
     };
   }, [id, socket]);

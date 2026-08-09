@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Trophy, Calendar, MapPin, CheckCircle2, Activity, ArrowLeft, Award, Flame, Circle, Zap, UserCheck } from 'lucide-react';
 import { Match, Player } from '../types';
 import { apiRequest } from '../services/api';
-import { storage } from '../services/storage';
+import { storage, liveMatchChannel } from '../services/storage';
 import { BallTracker } from '../components/BallTracker';
 import { useSocket } from '../context/SocketContext';
 
@@ -13,8 +13,10 @@ export const LiveMatchPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { socket } = useSocket();
 
-  const fetchMatch = async () => {
+  const fetchMatch = async (isInitial = false) => {
     if (!id) return;
+    if (isInitial && !match) setLoading(true);
+
     const localMatches = storage.getMatches();
     const localMatch = localMatches.find((m) => m.id === id);
 
@@ -36,16 +38,32 @@ export const LiveMatchPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchMatch();
-    const interval = setInterval(fetchMatch, 1000);
+    fetchMatch(true);
+    const interval = setInterval(() => fetchMatch(false), 1500);
 
-    const handleEvent = () => fetchMatch();
+    const handleEvent = () => fetchMatch(false);
     window.addEventListener('cricvalley_match_updated', handleEvent);
     window.addEventListener('storage', handleEvent);
 
+    if (liveMatchChannel) {
+      liveMatchChannel.onmessage = (ev) => {
+        if (ev.data && ev.data.match && ev.data.match.id === id) {
+          setMatch(ev.data.match);
+        } else if (ev.data && ev.data.type === 'MATCHES_UPDATED') {
+          fetchMatch(false);
+        }
+      };
+    }
+
     if (socket) {
-      socket.on('match_updated', handleEvent);
-      socket.on('ball_recorded', handleEvent);
+      socket.on('match_updated', (updatedData: Match) => {
+        if (updatedData && updatedData.id === id) setMatch(updatedData);
+        else fetchMatch(false);
+      });
+      socket.on('ball_recorded', (updatedData: Match) => {
+        if (updatedData && updatedData.id === id) setMatch(updatedData);
+        else fetchMatch(false);
+      });
       socket.on('match_status_changed', handleEvent);
     }
 
@@ -54,9 +72,9 @@ export const LiveMatchPage: React.FC = () => {
       window.removeEventListener('cricvalley_match_updated', handleEvent);
       window.removeEventListener('storage', handleEvent);
       if (socket) {
-        socket.off('match_updated', handleEvent);
-        socket.off('ball_recorded', handleEvent);
-        socket.off('match_status_changed', handleEvent);
+        socket.off('match_updated');
+        socket.off('ball_recorded');
+        socket.off('match_status_changed');
       }
     };
   }, [id, socket]);

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Trophy, Calendar, Shield, Users, ArrowRight, Activity, CheckCircle2, Zap, Sparkles, Award } from 'lucide-react';
 import { Tournament, Match, Player } from '../types';
 import { apiRequest } from '../services/api';
-import { storage } from '../services/storage';
+import { storage, liveMatchChannel } from '../services/storage';
 import { useSocket } from '../context/SocketContext';
 
 export const HomePage: React.FC = () => {
@@ -12,7 +12,8 @@ export const HomePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { socket } = useSocket();
 
-  const fetchData = async () => {
+  const fetchData = async (isInitial = false) => {
+    if (isInitial && matches.length === 0) setLoading(true);
     try {
       const [tRes, mRes] = await Promise.all([
         apiRequest<Tournament[]>('/tournaments'),
@@ -43,12 +44,16 @@ export const HomePage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 1000);
+    fetchData(true);
+    const interval = setInterval(() => fetchData(false), 1500);
 
-    const handleEvent = () => fetchData();
+    const handleEvent = () => fetchData(false);
     window.addEventListener('cricvalley_match_updated', handleEvent);
     window.addEventListener('storage', handleEvent);
+
+    if (liveMatchChannel) {
+      liveMatchChannel.onmessage = () => fetchData(false);
+    }
 
     if (socket) {
       socket.on('match_updated', handleEvent);
@@ -61,9 +66,9 @@ export const HomePage: React.FC = () => {
       window.removeEventListener('cricvalley_match_updated', handleEvent);
       window.removeEventListener('storage', handleEvent);
       if (socket) {
-        socket.off('match_updated', handleEvent);
-        socket.off('ball_recorded', handleEvent);
-        socket.off('match_status_changed', handleEvent);
+        socket.off('match_updated');
+        socket.off('ball_recorded');
+        socket.off('match_status_changed');
       }
     };
   }, [socket]);

@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Activity, Play, RotateCcw, ArrowLeft, ArrowRightLeft, Circle, CheckCircle2, Award, Zap } from 'lucide-react';
 import { Match, Player, Innings } from '../../types';
 import { apiRequest } from '../../services/api';
-import { storage } from '../../services/storage';
+import { storage, liveMatchChannel } from '../../services/storage';
 import { BallTracker } from '../../components/BallTracker';
 import { useSocket } from '../../context/SocketContext';
 
@@ -32,11 +32,21 @@ export const AdminScorerPage: React.FC = () => {
     if (!id) return;
     setLoading(true);
     let foundMatch: Match | null = null;
+    const allLocalMatches = storage.getMatches();
+    const localMatch = allLocalMatches.find((m) => m.id === id) || null;
+
     try {
-      foundMatch = await apiRequest<Match>(`/matches/${id}`);
+      const resMatch = await apiRequest<Match>(`/matches/${id}`);
+      const localBallsCount = localMatch?.innings?.reduce((acc, inn) => acc + (inn.balls?.length || 0), 0) || 0;
+      const resBallsCount = resMatch?.innings?.reduce((acc, inn) => acc + (inn.balls?.length || 0), 0) || 0;
+
+      if (localMatch && localBallsCount >= resBallsCount) {
+        foundMatch = localMatch;
+      } else {
+        foundMatch = resMatch;
+      }
     } catch (err) {
-      const allMatches = storage.getMatches();
-      foundMatch = allMatches.find((m) => m.id === id) || null;
+      foundMatch = localMatch;
     }
 
     if (foundMatch) {
@@ -96,9 +106,30 @@ export const AdminScorerPage: React.FC = () => {
     const allMatches = storage.getMatches();
     const newMatches = allMatches.map((m) => (m.id === updatedMatch.id ? updatedMatch : m));
     storage.saveMatches(newMatches);
+
+    // Sync to backend API if available
+    apiRequest(`/matches/${updatedMatch.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        status: updatedMatch.status,
+        stage: updatedMatch.stage,
+        tossWinnerId: updatedMatch.tossWinnerId,
+        tossDecision: updatedMatch.tossDecision,
+        homeScoreRuns: updatedMatch.innings?.find((i) => i.battingTeamId === updatedMatch.homeTeamId)?.totalRuns || 0,
+        homeWickets: updatedMatch.innings?.find((i) => i.battingTeamId === updatedMatch.homeTeamId)?.wickets || 0,
+        homeOvers: updatedMatch.innings?.find((i) => i.battingTeamId === updatedMatch.homeTeamId)?.overs || 0,
+        awayScoreRuns: updatedMatch.innings?.find((i) => i.battingTeamId === updatedMatch.awayTeamId)?.totalRuns || 0,
+        awayWickets: updatedMatch.innings?.find((i) => i.battingTeamId === updatedMatch.awayTeamId)?.wickets || 0,
+        awayOvers: updatedMatch.innings?.find((i) => i.battingTeamId === updatedMatch.awayTeamId)?.overs || 0,
+      }),
+    }).catch(() => {});
+
     if (socket) {
       socket.emit('match_updated', updatedMatch);
       socket.emit('ball_recorded', updatedMatch);
+    }
+    if (liveMatchChannel) {
+      liveMatchChannel.postMessage({ type: 'MATCH_UPDATED', match: updatedMatch });
     }
     window.dispatchEvent(new Event('cricvalley_match_updated'));
     window.dispatchEvent(new Event('storage'));

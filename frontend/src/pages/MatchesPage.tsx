@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Calendar, Activity, Trophy, Circle, CheckCircle, Clock, Award } from 'lucide-react';
 import { Match } from '../types';
 import { apiRequest } from '../services/api';
-import { storage } from '../services/storage';
+import { storage, liveMatchChannel } from '../services/storage';
 import { useSocket } from '../context/SocketContext';
 
 export const MatchesPage: React.FC = () => {
@@ -12,8 +12,8 @@ export const MatchesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { socket } = useSocket();
 
-  const fetchMatches = async () => {
-    setLoading(true);
+  const fetchMatches = async (isInitial = false) => {
+    if (isInitial && matches.length === 0) setLoading(true);
     let data: Match[] = [];
     try {
       let url = '/matches';
@@ -25,7 +25,6 @@ export const MatchesPage: React.FC = () => {
         data = data.filter((m) => m.status === statusFilter);
       }
     } finally {
-      // Merge with local storage if local storage has newer data
       const localMatches = storage.getMatches();
       if (localMatches && localMatches.length > 0) {
         data = data.map((m) => {
@@ -44,12 +43,16 @@ export const MatchesPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchMatches();
-    const interval = setInterval(fetchMatches, 1000);
+    fetchMatches(true);
+    const interval = setInterval(() => fetchMatches(false), 1500);
 
-    const handleEvent = () => fetchMatches();
+    const handleEvent = () => fetchMatches(false);
     window.addEventListener('cricvalley_match_updated', handleEvent);
     window.addEventListener('storage', handleEvent);
+
+    if (liveMatchChannel) {
+      liveMatchChannel.onmessage = () => fetchMatches(false);
+    }
 
     if (socket) {
       socket.on('match_updated', handleEvent);
@@ -62,9 +65,9 @@ export const MatchesPage: React.FC = () => {
       window.removeEventListener('cricvalley_match_updated', handleEvent);
       window.removeEventListener('storage', handleEvent);
       if (socket) {
-        socket.off('match_updated', handleEvent);
-        socket.off('ball_recorded', handleEvent);
-        socket.off('match_status_changed', handleEvent);
+        socket.off('match_updated');
+        socket.off('ball_recorded');
+        socket.off('match_status_changed');
       }
     };
   }, [statusFilter, socket]);

@@ -219,11 +219,15 @@ const INITIAL_MATCHES: Match[] = [
   },
 ];
 
-// LocalStorage Persistence Keys
+// LocalStorage Persistence Keys & BroadcastChannel
 const KEY_TOURNAMENTS = 'cricvalley_tournaments_v1';
 const KEY_TEAMS = 'cricvalley_teams_v1';
 const KEY_PLAYERS = 'cricvalley_players_v1';
 const KEY_MATCHES = 'cricvalley_matches_v1';
+
+export const liveMatchChannel = typeof window !== 'undefined' && 'BroadcastChannel' in window
+  ? new BroadcastChannel('cricvalley_live_match_channel')
+  : null;
 
 export const storage = {
   getTournaments: (): Tournament[] => {
@@ -277,6 +281,9 @@ export const storage = {
   saveMatches: (items: Match[]) => {
     localStorage.setItem(KEY_MATCHES, JSON.stringify(items));
     try {
+      if (liveMatchChannel) {
+        liveMatchChannel.postMessage({ type: 'MATCHES_UPDATED', matches: items });
+      }
       window.dispatchEvent(new Event('cricvalley_match_updated'));
       window.dispatchEvent(new Event('storage'));
     } catch (e) {}
