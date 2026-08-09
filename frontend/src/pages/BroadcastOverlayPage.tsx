@@ -110,30 +110,23 @@ export const BroadcastOverlayPage: React.FC = () => {
   const nonStrikerId = lastBall?.nonStrikerId;
   const bowlerId = lastBall?.bowlerId;
 
-  const strikerPlayer = allPlayers.find((p) => p.id === strikerId) || { name: 'SURESH S' };
-  const nonStrikerPlayer = allPlayers.find((p) => p.id === nonStrikerId) || { name: 'KAMLESH S' };
-  const activeBowlerPlayer = allPlayers.find((p) => p.id === bowlerId) || { name: 'PRAVEEN' };
+  const strikerPlayer = allPlayers.find((p) => p.id === strikerId) || { name: 'BATTER 1' };
+  const nonStrikerPlayer = allPlayers.find((p) => p.id === nonStrikerId) || { name: 'BATTER 2' };
+  const activeBowlerPlayer = allPlayers.find((p) => p.id === bowlerId) || { name: 'BOWLER' };
 
-  const strikerStats = strikerId ? playerStatsMap[strikerId] || { runs: 3, balls: 5 } : { runs: 3, balls: 5 };
-  const nonStrikerStats = nonStrikerId ? playerStatsMap[nonStrikerId] || { runs: 7, balls: 10 } : { runs: 7, balls: 10 };
-  const activeBowlerStats = bowlerId ? bowlerStatsMap[bowlerId] || { balls: 17, runsConceded: 10, wickets: 2 } : { balls: 17, runsConceded: 10, wickets: 2 };
+  const strikerStats = strikerId ? playerStatsMap[strikerId] || { runs: 0, balls: 0 } : { runs: 0, balls: 0 };
+  const nonStrikerStats = nonStrikerId ? playerStatsMap[nonStrikerId] || { runs: 0, balls: 0 } : { runs: 0, balls: 0 };
+  const activeBowlerStats = bowlerId ? bowlerStatsMap[bowlerId] || { balls: 0, runsConceded: 0, wickets: 0 } : { balls: 0, runsConceded: 0, wickets: 0 };
 
   // Calculate Run Rate
-  const totalRuns = activeInnings?.totalRuns || 13;
-  const wickets = activeInnings?.wickets || 2;
-  const overs = activeInnings?.overs || 3.5;
+  const totalRuns = activeInnings?.totalRuns ?? 0;
+  const wickets = activeInnings?.wickets ?? 0;
+  const overs = activeInnings?.overs ?? 0.0;
   const runRate = overs > 0 ? (totalRuns / (Math.floor(overs) + (overs % 1) * (10 / 6))).toFixed(2) : '0.00';
 
   const recentBalls = activeInnings?.balls && activeInnings.balls.length > 0
     ? activeInnings.balls.slice(-6)
-    : [
-        { runs: 0, isWicket: false },
-        { runs: 4, isWicket: false },
-        { runs: 1, isWicket: false },
-        { runs: 0, isWicket: false },
-        { runs: 0, isWicket: true },
-        { runs: 0, isWicket: false },
-      ];
+    : [];
 
   return (
     <div className="w-screen h-screen bg-transparent p-4 flex flex-col justify-end overflow-hidden select-none">
