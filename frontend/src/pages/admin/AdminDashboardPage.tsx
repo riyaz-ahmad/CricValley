@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, Plus, Shield, Users, Calendar, Edit3, Trash2, CheckCircle2, Table, Zap, X, PlusCircle, Award, Activity, Circle } from 'lucide-react';
+import { Trophy, Plus, Shield, Users, Calendar, Edit3, Trash2, CheckCircle2, Table, Zap, X, PlusCircle, Award, Activity, Circle, Video } from 'lucide-react';
 import { Tournament, Team, Player, Match } from '../../types';
 import { apiRequest } from '../../services/api';
 import { storage } from '../../services/storage';
@@ -886,6 +886,12 @@ export const AdminDashboardPage: React.FC = () => {
                       )}
                     </td>
                     <td className="py-3 px-3 text-right flex items-center justify-end gap-2">
+                      <Link
+                        to={`/admin/streamer/${m.id}`}
+                        className="px-3 py-1.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black rounded-lg text-[11px] shadow-md flex items-center gap-1"
+                      >
+                        <Video className="w-3.5 h-3.5" /> Cam Stream
+                      </Link>
                       <Link
                         to={`/admin/scorer/${m.id}`}
                         className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black rounded-lg text-[11px] shadow-md flex items-center gap-1"
