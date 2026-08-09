@@ -177,6 +177,46 @@ export const AdminStreamerPage: React.FC = () => {
   const inn1 = match.innings?.find((i) => i.inningNumber === 1);
   const inn2 = match.innings?.find((i) => i.inningNumber === 2);
   const activeInnings = (inn2 && !inn2.isCompleted ? inn2 : inn1) || inn1;
+  const battingTeam = activeInnings?.battingTeamId === match.homeTeamId ? match.homeTeam : match.awayTeam;
+  const bowlingTeam = activeInnings?.battingTeamId === match.homeTeamId ? match.awayTeam : match.homeTeam;
+
+  const allPlayers = storage.getPlayers();
+  const playerStatsMap: Record<string, { runs: number; balls: number }> = {};
+  const bowlerStatsMap: Record<string, { balls: number; runsConceded: number; wickets: number }> = {};
+
+  if (activeInnings && activeInnings.balls) {
+    activeInnings.balls.forEach((b) => {
+      if (b.strikerId) {
+        if (!playerStatsMap[b.strikerId]) playerStatsMap[b.strikerId] = { runs: 0, balls: 0 };
+        playerStatsMap[b.strikerId].runs += b.runs;
+        if (b.extraType !== 'WIDE') playerStatsMap[b.strikerId].balls += 1;
+      }
+      if (b.bowlerId) {
+        if (!bowlerStatsMap[b.bowlerId]) bowlerStatsMap[b.bowlerId] = { balls: 0, runsConceded: 0, wickets: 0 };
+        const isLegal = b.extraType !== 'WIDE' && b.extraType !== 'NO_BALL';
+        if (isLegal) bowlerStatsMap[b.bowlerId].balls += 1;
+        let wide = b.extraType === 'WIDE' ? 1 : 0;
+        let noBall = b.extraType === 'NO_BALL' ? 1 : 0;
+        bowlerStatsMap[b.bowlerId].runsConceded += b.runs + wide + noBall;
+        if (b.isWicket) bowlerStatsMap[b.bowlerId].wickets += 1;
+      }
+    });
+  }
+
+  const lastBall = activeInnings?.balls && activeInnings.balls.length > 0 ? activeInnings.balls[activeInnings.balls.length - 1] : null;
+  const strikerId = lastBall?.strikerId;
+  const nonStrikerId = lastBall?.nonStrikerId;
+  const bowlerId = lastBall?.bowlerId;
+
+  const strikerPlayer = allPlayers.find((p) => p.id === strikerId) || { name: `${battingTeam.shortName || 'BAT'} Batter 1` };
+  const nonStrikerPlayer = allPlayers.find((p) => p.id === nonStrikerId) || { name: `${battingTeam.shortName || 'BAT'} Batter 2` };
+  const activeBowlerPlayer = allPlayers.find((p) => p.id === bowlerId) || { name: `${bowlingTeam.shortName || 'BOWL'} Bowler` };
+
+  const strikerStats = strikerId ? playerStatsMap[strikerId] || { runs: 0, balls: 0 } : { runs: 0, balls: 0 };
+  const nonStrikerStats = nonStrikerId ? playerStatsMap[nonStrikerId] || { runs: 0, balls: 0 } : { runs: 0, balls: 0 };
+  const activeBowlerStats = bowlerId ? bowlerStatsMap[bowlerId] || { balls: 0, runsConceded: 0, wickets: 0 } : { balls: 0, runsConceded: 0, wickets: 0 };
+
+  const recentBalls = activeInnings?.balls && activeInnings.balls.length > 0 ? activeInnings.balls.slice(-6) : [];
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -266,25 +306,25 @@ export const AdminStreamerPage: React.FC = () => {
                 </div>
               )}
 
-              {/* OVERLAID TV SPORTS SCOREBOARD GRAPHICS */}
+              {/* LIVE TV BROADCAST OVERLAY GRAPHICS PREVIEW */}
               <div className="absolute bottom-3 left-2 right-2 pointer-events-none flex justify-center">
                 <div className="flex items-center bg-[#200a46] p-0.5 rounded-r-xl border-t border-b border-[#3d137b] shadow-2xl scale-90 sm:scale-100 transform origin-bottom">
                   {/* 1. BATTERS BOX */}
                   <div className="bg-white text-black px-3 py-1 flex flex-col justify-center min-w-[170px] font-sans h-11 z-20">
                     <div className="flex items-center justify-between text-xs font-extrabold uppercase">
-                      <span className="flex items-center gap-1 text-[#111]">
-                        {match.homeTeam.shortName} Batter 1 <span className="text-[#e6007e] font-black">*</span>
+                      <span className="flex items-center gap-1 text-[#111] truncate max-w-[110px]">
+                        {strikerPlayer.name} <span className="text-[#e6007e] font-black">*</span>
                       </span>
                       <div className="flex items-baseline gap-0.5 font-mono">
-                        <span className="text-sm font-black text-black">03</span>
-                        <span className="text-[10px] font-bold text-gray-600">5</span>
+                        <span className="text-sm font-black text-black">{String(strikerStats.runs).padStart(2, '0')}</span>
+                        <span className="text-[10px] font-bold text-gray-600">{strikerStats.balls}</span>
                       </div>
                     </div>
                     <div className="flex items-center justify-between text-xs font-extrabold uppercase mt-0.5">
-                      <span className="text-[#333]">{match.homeTeam.shortName} Batter 2</span>
+                      <span className="text-[#333] truncate max-w-[110px]">{nonStrikerPlayer.name}</span>
                       <div className="flex items-baseline gap-0.5 font-mono">
-                        <span className="text-sm font-black text-black">07</span>
-                        <span className="text-[10px] font-bold text-gray-600">10</span>
+                        <span className="text-sm font-black text-black">{String(nonStrikerStats.runs).padStart(2, '0')}</span>
+                        <span className="text-[10px] font-bold text-gray-600">{nonStrikerStats.balls}</span>
                       </div>
                     </div>
                   </div>
@@ -293,7 +333,7 @@ export const AdminStreamerPage: React.FC = () => {
                   <div className="bg-[#200a46] text-white px-3 py-1 flex flex-col justify-center items-center h-11 z-20">
                     <div className="flex items-center gap-2">
                       <div className="text-xs font-black uppercase text-slate-200">
-                        {match.awayTeam.shortName} v <strong className="text-white font-black">{match.homeTeam.shortName}</strong>
+                        {bowlingTeam.shortName || 'BOWL'} v <strong className="text-white font-black">{battingTeam.shortName || 'BAT'}</strong>
                       </div>
                       <div className="bg-[#e6007e] text-white font-mono font-black text-lg px-2 py-0.5 rounded-l-sm leading-none">
                         {activeInnings?.totalRuns || 0}-{activeInnings?.wickets || 0}
@@ -310,22 +350,27 @@ export const AdminStreamerPage: React.FC = () => {
                   {/* 3. BOWLER & RECENT BALLS */}
                   <div className="bg-white text-black px-3 py-1 flex flex-col justify-center min-w-[170px] font-sans h-11 z-20">
                     <div className="flex items-center justify-between text-xs font-extrabold uppercase">
-                      <span className="text-[#111]">Bowler</span>
+                      <span className="text-[#111] truncate max-w-[90px]">{activeBowlerPlayer.name}</span>
                       <div className="font-mono font-black text-xs text-black">
-                        2-10 <span className="text-[10px] text-gray-600">(2.5)</span>
+                        {activeBowlerStats.wickets}-{activeBowlerStats.runsConceded}{' '}
+                        <span className="text-[10px] text-gray-600">({(activeBowlerStats.balls / 6).toFixed(1)})</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 mt-0.5">
-                      {['0', '4', '1', '0', 'W', '●'].map((val, idx) => (
-                        <div
-                          key={idx}
-                          className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black font-mono ${
-                            val === 'W' ? 'bg-red-600 text-white' : 'bg-[#200a46] text-white'
-                          }`}
-                        >
-                          {val}
-                        </div>
-                      ))}
+                      {recentBalls.length > 0 ? (
+                        recentBalls.map((b, idx) => (
+                          <div
+                            key={idx}
+                            className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black font-mono ${
+                              b.isWicket ? 'bg-red-600 text-white' : 'bg-[#200a46] text-white'
+                            }`}
+                          >
+                            {b.isWicket ? 'W' : b.runs}
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-[9px] text-slate-400 font-bold italic">Awaiting 1st ball</span>
+                      )}
                     </div>
                   </div>
                 </div>
