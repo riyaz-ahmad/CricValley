@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Camera, Video, Play, Square, Settings, Copy, Check, ArrowLeft, RefreshCw, Youtube, Facebook, Shield, Circle, Zap } from 'lucide-react';
+import { Camera, Video, Play, Square, Settings, Copy, Check, ArrowLeft, RefreshCw, Youtube, Facebook, Shield, Circle, Zap, Lock, Unlock, Edit3, Save } from 'lucide-react';
 import { Match } from '../../types';
 import { apiRequest } from '../../services/api';
 import { storage } from '../../services/storage';
@@ -27,6 +27,7 @@ export const AdminStreamerPage: React.FC = () => {
   const [streamKey, setStreamKey] = useState<string>('');
   const [rtmpUrl, setRtmpUrl] = useState<string>('rtmp://a.rtmp.youtube.com/live2');
   const [isLiveBroadcasting, setIsLiveBroadcasting] = useState<boolean>(false);
+  const [isKeySaved, setIsKeySaved] = useState<boolean>(false);
   const [rtmpStatusMessage, setRtmpStatusMessage] = useState<string>('');
 
   const fetchMatch = async () => {
@@ -394,21 +395,64 @@ export const AdminStreamerPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1 uppercase text-[10px]">Your Live Stream Key *</label>
-                <input
-                  type="password"
-                  placeholder="Paste YouTube/Facebook Stream Key here..."
-                  value={streamKey}
-                  onChange={(e) => setStreamKey(e.target.value)}
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-emerald-500"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-slate-300 font-bold uppercase text-[10px]">
+                    Your Live Stream Key *
+                  </label>
+                  {isKeySaved && (
+                    <span className="px-2 py-0.5 bg-emerald-950 text-emerald-400 border border-emerald-800 rounded-full text-[10px] font-bold flex items-center gap-1">
+                      <Lock className="w-3 h-3" /> Saved & Connected
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="password"
+                    readOnly={isKeySaved}
+                    placeholder="Paste YouTube/Facebook Stream Key here..."
+                    value={streamKey}
+                    onChange={(e) => setStreamKey(e.target.value)}
+                    className={`w-full p-2.5 rounded-xl font-mono text-xs focus:outline-none transition-all ${
+                      isKeySaved
+                        ? 'bg-slate-900 border border-emerald-500/60 text-emerald-400 font-bold cursor-not-allowed'
+                        : 'bg-slate-950 border border-slate-800 text-white focus:border-emerald-500'
+                    }`}
+                  />
+
+                  {!isKeySaved ? (
+                    <button
+                      onClick={() => {
+                        if (!streamKey.trim()) {
+                          alert('Please paste your YouTube or Facebook Stream Key first!');
+                          return;
+                        }
+                        setIsKeySaved(true);
+                        startBroadcast();
+                      }}
+                      className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-lg shrink-0 transition-all transform hover:scale-105"
+                    >
+                      <Save className="w-4 h-4" /> Save
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setIsKeySaved(false)}
+                      className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 font-bold rounded-xl text-xs flex items-center gap-1.5 shrink-0 transition-all"
+                    >
+                      <Edit3 className="w-4 h-4 text-amber-400" /> Edit
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* GO LIVE BUTTON & STREAM CONTROLS */}
               <div className="pt-2 space-y-2">
                 {!isLiveBroadcasting ? (
                   <button
-                    onClick={startBroadcast}
+                    onClick={() => {
+                      setIsKeySaved(true);
+                      startBroadcast();
+                    }}
                     className={`w-full py-3.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl transition-all transform hover:-translate-y-0.5 ${
                       platform === 'YOUTUBE'
                         ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-red-600/30'
