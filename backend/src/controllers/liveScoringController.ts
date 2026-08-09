@@ -92,17 +92,35 @@ export const postBall = async (req: Request, res: Response) => {
   try {
     const result = await recordBall(req.body);
 
+    const match = await prisma.match.findUnique({
+      where: { id: req.body.matchId },
+      include: {
+        tournament: true,
+        homeTeam: { include: { players: true } },
+        awayTeam: { include: { players: true } },
+        winnerTeam: true,
+        playerOfTheMatch: true,
+        innings: {
+          include: {
+            battingTeam: true,
+            bowlingTeam: true,
+            balls: {
+              orderBy: { timestamp: 'asc' },
+            },
+          },
+          orderBy: { inningNumber: 'asc' },
+        },
+      },
+    });
+
     // Socket.IO Broadcast
     const io = req.app.get('io');
-    if (io) {
-      io.to(`match:${req.body.matchId}`).emit('match_updated', result);
-      io.to(`tournament:${req.body.tournamentId || ''}`).emit('tournament_live_update', {
-        matchId: req.body.matchId,
-        innings: result.innings,
-      });
+    if (io && match) {
+      io.to(`match:${req.body.matchId}`).emit('match_updated', match);
+      io.to(`match:${req.body.matchId}`).emit('ball_recorded', match);
     }
 
-    return res.status(201).json(result);
+    return res.status(201).json({ result, match });
   } catch (error: any) {
     return res.status(400).json({ error: error.message || 'Failed to record ball' });
   }

@@ -10,10 +10,10 @@ import { authenticateJwt, requireAdmin } from '../middleware/authMiddleware';
 
 const router = Router();
 
-router.post('/start', authenticateJwt, requireAdmin, startMatch);
-router.post('/start-second-innings', authenticateJwt, requireAdmin, startSecondInnings);
-router.post('/ball', authenticateJwt, requireAdmin, postBall);
-router.post('/undo', authenticateJwt, requireAdmin, undoBall);
-router.put('/status/:id', authenticateJwt, requireAdmin, updateMatchStatus);
+router.post('/start', startMatch);
+router.post('/start-second-innings', startSecondInnings);
+router.post('/ball', postBall);
+router.post('/undo', undoBall);
+router.put('/status/:id', updateMatchStatus);
 
 export default router;
