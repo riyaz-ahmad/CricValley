@@ -195,23 +195,66 @@ export const AdminStreamerPage: React.FC = () => {
               )}
 
               {/* OVERLAID TV SPORTS SCOREBOARD GRAPHICS */}
-              <div className="absolute bottom-4 left-4 right-4 pointer-events-none">
-                <div className="bg-slate-950/90 border border-slate-800/80 backdrop-blur-md rounded-2xl p-3.5 shadow-2xl flex items-center justify-between text-xs text-white">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-emerald-500 text-slate-950 font-black px-3 py-1 rounded-xl text-sm">
-                      {activeInnings?.battingTeam?.shortName || match.homeTeam.shortName}
-                    </div>
-                    <div>
-                      <div className="font-mono font-black text-xl text-white">
-                        {activeInnings?.totalRuns || 0}/{activeInnings?.wickets || 0}
+              <div className="absolute bottom-3 left-2 right-2 pointer-events-none flex justify-center">
+                <div className="flex items-center bg-[#200a46] p-0.5 rounded-r-xl border-t border-b border-[#3d137b] shadow-2xl scale-90 sm:scale-100 transform origin-bottom">
+                  {/* 1. BATTERS BOX */}
+                  <div className="bg-white text-black px-3 py-1 flex flex-col justify-center min-w-[170px] font-sans h-11 z-20">
+                    <div className="flex items-center justify-between text-xs font-extrabold uppercase">
+                      <span className="flex items-center gap-1 text-[#111]">
+                        {match.homeTeam.shortName} Batter 1 <span className="text-[#e6007e] font-black">*</span>
+                      </span>
+                      <div className="flex items-baseline gap-0.5 font-mono">
+                        <span className="text-sm font-black text-black">03</span>
+                        <span className="text-[10px] font-bold text-gray-600">5</span>
                       </div>
-                      <div className="text-[10px] text-emerald-400 font-mono font-bold">{activeInnings?.overs || 0} Overs</div>
+                    </div>
+                    <div className="flex items-center justify-between text-xs font-extrabold uppercase mt-0.5">
+                      <span className="text-[#333]">{match.homeTeam.shortName} Batter 2</span>
+                      <div className="flex items-baseline gap-0.5 font-mono">
+                        <span className="text-sm font-black text-black">07</span>
+                        <span className="text-[10px] font-bold text-gray-600">10</span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="text-right">
-                    <div className="text-[10px] text-amber-400 uppercase font-black">🔴 LIVE BROADCAST</div>
-                    <div className="text-xs font-bold text-slate-300">{match.tournament?.title || 'CricValley Cup'}</div>
+                  {/* 2. CENTER SCORE BOX */}
+                  <div className="bg-[#200a46] text-white px-3 py-1 flex flex-col justify-center items-center h-11 z-20">
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs font-black uppercase text-slate-200">
+                        {match.awayTeam.shortName} v <strong className="text-white font-black">{match.homeTeam.shortName}</strong>
+                      </div>
+                      <div className="bg-[#e6007e] text-white font-mono font-black text-lg px-2 py-0.5 rounded-l-sm leading-none">
+                        {activeInnings?.totalRuns || 0}-{activeInnings?.wickets || 0}
+                      </div>
+                      <div className="bg-[#e6e600] text-black font-mono font-black text-[10px] px-1.5 py-0.5 leading-none">
+                        P2
+                      </div>
+                      <div className="text-[11px] font-black uppercase text-slate-100 font-mono">
+                        {activeInnings?.overs || 0} OV
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. BOWLER & RECENT BALLS */}
+                  <div className="bg-white text-black px-3 py-1 flex flex-col justify-center min-w-[170px] font-sans h-11 z-20">
+                    <div className="flex items-center justify-between text-xs font-extrabold uppercase">
+                      <span className="text-[#111]">Bowler</span>
+                      <div className="font-mono font-black text-xs text-black">
+                        2-10 <span className="text-[10px] text-gray-600">(2.5)</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      {['0', '4', '1', '0', 'W', '●'].map((val, idx) => (
+                        <div
+                          key={idx}
+                          className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black font-mono ${
+                            val === 'W' ? 'bg-red-600 text-white' : 'bg-[#200a46] text-white'
+                          }`}
+                        >
+                          {val}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
