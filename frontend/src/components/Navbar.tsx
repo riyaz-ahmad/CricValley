@@ -63,6 +63,17 @@ export const Navbar: React.FC = () => {
                 <Calendar className="w-3.5 h-3.5" /> Matches & Scores
               </Link>
 
+              <Link
+                to="/register-team"
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                  isActive('/register-team')
+                    ? 'text-cyan-300 bg-cyan-950/80 border border-cyan-700 shadow-md'
+                    : 'text-cyan-400 hover:text-cyan-200 bg-cyan-950/40 border border-cyan-800/50'
+                }`}
+              >
+                📝 Register Team
+              </Link>
+
               {user && (
                 <Link
                   to="/admin/dashboard"

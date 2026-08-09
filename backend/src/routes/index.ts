@@ -7,6 +7,7 @@ import matchRoutes from './matchRoutes';
 import liveScoringRoutes from './liveScoringRoutes';
 import statsRoutes from './statsRoutes';
 import extraRoutes from './extraRoutes';
+import { truncateAllDataExceptAdmin } from '../controllers/adminCleanupController';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/matches', matchRoutes);
 router.use('/live', liveScoringRoutes);
 router.use('/stats', statsRoutes);
 router.use('/extra', extraRoutes);
+router.post('/admin/reset-database', truncateAllDataExceptAdmin);
 
 export default router;

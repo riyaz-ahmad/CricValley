@@ -19,6 +19,7 @@ import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { AdminScorerPage } from './pages/admin/AdminScorerPage';
 import { AdminStreamerPage } from './pages/admin/AdminStreamerPage';
 import { BroadcastOverlayPage } from './pages/BroadcastOverlayPage';
+import { PublicTeamRegistrationPage } from './pages/PublicTeamRegistrationPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -54,6 +55,7 @@ export const App: React.FC = () => {
                         <Route path="/matches" element={<MatchesPage />} />
                         <Route path="/matches/:id" element={<LiveMatchPage />} />
                         <Route path="/login" element={<LoginPage />} />
+                        <Route path="/register-team" element={<PublicTeamRegistrationPage />} />
                         <Route path="/players" element={<Navigate to="/tournaments" replace />} />
 
                         {/* Protected Admin Routes */}

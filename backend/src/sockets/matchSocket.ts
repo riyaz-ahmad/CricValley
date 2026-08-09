@@ -100,7 +100,7 @@ export function setupSocketIO(io: Server) {
       const ffmpeg = activeRtmpProcesses.get(socket.id);
       if (ffmpeg) {
         try {
-          ffmpeg.stdin.end();
+          if (ffmpeg.stdin) ffmpeg.stdin.end();
           ffmpeg.kill('SIGINT');
         } catch (e) {}
         activeRtmpProcesses.delete(socket.id);
@@ -113,7 +113,7 @@ export function setupSocketIO(io: Server) {
       const ffmpeg = activeRtmpProcesses.get(socket.id);
       if (ffmpeg) {
         try {
-          ffmpeg.stdin.end();
+          if (ffmpeg.stdin) ffmpeg.stdin.end();
           ffmpeg.kill('SIGKILL');
         } catch (e) {}
         activeRtmpProcesses.delete(socket.id);

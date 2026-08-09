@@ -288,4 +288,19 @@ export const storage = {
       window.dispatchEvent(new Event('storage'));
     } catch (e) {}
   },
+
+  clearAllData: () => {
+    try {
+      localStorage.removeItem(KEY_TOURNAMENTS);
+      localStorage.removeItem(KEY_TEAMS);
+      localStorage.removeItem(KEY_PLAYERS);
+      localStorage.removeItem(KEY_MATCHES);
+      localStorage.setItem(KEY_TOURNAMENTS, JSON.stringify([]));
+      localStorage.setItem(KEY_TEAMS, JSON.stringify([]));
+      localStorage.setItem(KEY_PLAYERS, JSON.stringify([]));
+      localStorage.setItem(KEY_MATCHES, JSON.stringify([]));
+      window.dispatchEvent(new Event('cricvalley_match_updated'));
+      window.dispatchEvent(new Event('storage'));
+    } catch (e) {}
+  },
 };

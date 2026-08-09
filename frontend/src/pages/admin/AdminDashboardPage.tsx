@@ -537,6 +537,22 @@ export const AdminDashboardPage: React.FC = () => {
     }
   };
 
+  const handleResetDataToScratch = async () => {
+    if (window.confirm('WARNING: Are you sure you want to truncate ALL tournaments, teams, players, and matches to start completely from scratch? (Your admin user login will NOT be deleted)')) {
+      try {
+        await apiRequest('/admin/reset-database', { method: 'POST' }).catch(() => {});
+        storage.clearAllData();
+        setTournaments([]);
+        setTeams([]);
+        setPlayers([]);
+        setMatches([]);
+        alert('All tournaments, teams, players, and matches have been truncated! You can now start completely fresh.');
+      } catch (err: any) {
+        alert('Reset error: ' + err.message);
+      }
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Header Banner */}
@@ -546,6 +562,16 @@ export const AdminDashboardPage: React.FC = () => {
             <Trophy className="w-7 h-7 text-emerald-400" /> CricValley Admin Management Hub
           </h1>
           <p className="text-xs text-slate-400">CRUD for Tournaments, Teams, Players, Matches, and Man of the Match awards</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleResetDataToScratch}
+            className="px-3.5 py-2 bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-700/60 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shrink-0"
+            title="Truncate all tournaments, teams, players and matches to start fresh"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-red-400" /> Reset Database (Start Scratch)
+          </button>
         </div>
 
         {/* Tab Navigation */}
