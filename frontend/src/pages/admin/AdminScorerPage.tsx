@@ -78,19 +78,30 @@ export const AdminScorerPage: React.FC = () => {
 
       const activeInn = foundMatch.innings.find((i) => !i.isCompleted) || foundMatch.innings[0];
       if (activeInn) {
-        const allPlayers = storage.getPlayers();
-        const batPlayers = allPlayers.filter((p) => p.teamId === activeInn.battingTeamId);
-        const bowlPlayers = allPlayers.filter((p) => p.teamId === activeInn.bowlingTeamId);
+        const allStoragePlayers = storage.getPlayers();
+        const teamBatPlayers = (activeInn.battingTeamId === foundMatch.homeTeamId ? foundMatch.homeTeam.players : foundMatch.awayTeam.players) || [];
+        const teamBowlPlayers = (activeInn.bowlingTeamId === foundMatch.homeTeamId ? foundMatch.homeTeam.players : foundMatch.awayTeam.players) || [];
 
-        if (batPlayers.length >= 2 && !strikerId) {
-          setStrikerId(batPlayers[0].id);
-          setNonStrikerId(batPlayers[1].id);
-        } else if (batPlayers.length > 0 && !strikerId) {
-          setStrikerId(batPlayers[0].id);
-        }
+        const batPlayers = teamBatPlayers.length > 0 ? teamBatPlayers : allStoragePlayers.filter((p) => p.teamId === activeInn.battingTeamId);
+        const bowlPlayers = teamBowlPlayers.length > 0 ? teamBowlPlayers : allStoragePlayers.filter((p) => p.teamId === activeInn.bowlingTeamId);
 
-        if (bowlPlayers.length > 0 && !bowlerId) {
-          setBowlerId(bowlPlayers[0].id);
+        const lastBall = activeInn.balls && activeInn.balls.length > 0 ? activeInn.balls[activeInn.balls.length - 1] : null;
+
+        if (lastBall) {
+          if (lastBall.strikerId) setStrikerId(lastBall.strikerId);
+          if (lastBall.nonStrikerId) setNonStrikerId(lastBall.nonStrikerId);
+          if (lastBall.bowlerId) setBowlerId(lastBall.bowlerId);
+        } else {
+          if (batPlayers.length >= 2 && !strikerId) {
+            setStrikerId(batPlayers[0].id);
+            setNonStrikerId(batPlayers[1].id);
+          } else if (batPlayers.length > 0 && !strikerId) {
+            setStrikerId(batPlayers[0].id);
+          }
+
+          if (bowlPlayers.length > 0 && !bowlerId) {
+            setBowlerId(bowlPlayers[0].id);
+          }
         }
       }
     }
@@ -147,8 +158,11 @@ export const AdminScorerPage: React.FC = () => {
   const inn2 = match.innings?.find((i) => i.inningNumber === 2);
   const activeInnings = (inn2 && !inn2.isCompleted ? inn2 : inn1) || inn1;
 
-  const batTeamPlayers = allPlayers.filter((p) => p.teamId === activeInnings?.battingTeamId);
-  const bowlTeamPlayers = allPlayers.filter((p) => p.teamId === activeInnings?.bowlingTeamId);
+  const teamBatPlayers = (activeInnings?.battingTeamId === match.homeTeamId ? match.homeTeam.players : match.awayTeam.players) || [];
+  const teamBowlPlayers = (activeInnings?.bowlingTeamId === match.homeTeamId ? match.homeTeam.players : match.awayTeam.players) || [];
+
+  const batTeamPlayers = teamBatPlayers.length > 0 ? teamBatPlayers : allPlayers.filter((p) => p.teamId === activeInnings?.battingTeamId);
+  const bowlTeamPlayers = teamBowlPlayers.length > 0 ? teamBowlPlayers : allPlayers.filter((p) => p.teamId === activeInnings?.bowlingTeamId);
 
   const handleStartMatch = (decision: 'BAT' | 'BOWL') => {
     const battingTeamId = decision === 'BAT' ? match.homeTeamId : match.awayTeamId;
@@ -297,6 +311,26 @@ export const AdminScorerPage: React.FC = () => {
       handleSwapStrikers();
     }
 
+    // Sync ball event to backend API
+    apiRequest('/live/ball', {
+      method: 'POST',
+      body: JSON.stringify({
+        matchId: match.id,
+        inningsId: activeInnings.id,
+        overNumber: overNum,
+        ballNumberInOver: ballsInOver,
+        bowlerId,
+        strikerId,
+        nonStrikerId,
+        runs,
+        extraType,
+        extraRuns: wide + noBall,
+        isWicket,
+        wicketType: isWicket ? wicketType : undefined,
+        commentary: commentaryText || `${runs} runs scored by ${striker?.name || 'Batsman'}`,
+      }),
+    }).catch(() => {});
+
     saveUpdatedMatch(updatedMatch);
 
     // Reset selection
@@ -346,6 +380,14 @@ export const AdminScorerPage: React.FC = () => {
       ...match,
       innings: updatedInningsList,
     };
+
+    apiRequest('/live/ball/undo', {
+      method: 'POST',
+      body: JSON.stringify({
+        matchId: match.id,
+        inningsId: activeInnings.id,
+      }),
+    }).catch(() => {});
 
     saveUpdatedMatch(updatedMatch);
     alert('Last ball undone successfully!');

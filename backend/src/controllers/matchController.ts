@@ -25,7 +25,14 @@ export const getMatches = async (req: Request, res: Response) => {
         awayTeam: true,
         winnerTeam: true,
         playerOfTheMatch: true,
-        innings: true,
+        innings: {
+          include: {
+            balls: {
+              orderBy: { timestamp: 'asc' },
+            },
+          },
+          orderBy: { inningNumber: 'asc' },
+        },
       },
       orderBy: [{ scheduledAt: 'asc' }, { matchNumber: 'asc' }],
     });
@@ -52,6 +59,9 @@ export const getMatchScorecard = async (req: Request, res: Response) => {
           include: {
             battingTeam: true,
             bowlingTeam: true,
+            balls: {
+              orderBy: { timestamp: 'asc' },
+            },
           },
           orderBy: { inningNumber: 'asc' },
         },
