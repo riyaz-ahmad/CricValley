@@ -126,6 +126,9 @@ export const AdminScorerPage: React.FC = () => {
       : [...allMatches, updatedMatch];
     storage.saveMatches(newMatches);
 
+    const homeInn = updatedMatch.innings?.find((i) => i.battingTeamId === updatedMatch.homeTeamId);
+    const awayInn = updatedMatch.innings?.find((i) => i.battingTeamId === updatedMatch.awayTeamId);
+
     // Sync to backend API if available
     apiRequest(`/matches/${updatedMatch.id}`, {
       method: 'PUT',
@@ -134,12 +137,14 @@ export const AdminScorerPage: React.FC = () => {
         stage: updatedMatch.stage,
         tossWinnerId: updatedMatch.tossWinnerId,
         tossDecision: updatedMatch.tossDecision,
-        homeScoreRuns: updatedMatch.innings?.find((i) => i.battingTeamId === updatedMatch.homeTeamId)?.totalRuns || 0,
-        homeWickets: updatedMatch.innings?.find((i) => i.battingTeamId === updatedMatch.homeTeamId)?.wickets || 0,
-        homeOvers: updatedMatch.innings?.find((i) => i.battingTeamId === updatedMatch.homeTeamId)?.overs || 0,
-        awayScoreRuns: updatedMatch.innings?.find((i) => i.battingTeamId === updatedMatch.awayTeamId)?.totalRuns || 0,
-        awayWickets: updatedMatch.innings?.find((i) => i.battingTeamId === updatedMatch.awayTeamId)?.wickets || 0,
-        awayOvers: updatedMatch.innings?.find((i) => i.battingTeamId === updatedMatch.awayTeamId)?.overs || 0,
+        homeScoreRuns: homeInn?.totalRuns || 0,
+        homeWickets: homeInn?.wickets || 0,
+        homeOvers: homeInn?.overs || 0,
+        homeBalls: homeInn?.balls || [],
+        awayScoreRuns: awayInn?.totalRuns || 0,
+        awayWickets: awayInn?.wickets || 0,
+        awayOvers: awayInn?.overs || 0,
+        awayBalls: awayInn?.balls || [],
       }),
     }).catch(() => {});
 

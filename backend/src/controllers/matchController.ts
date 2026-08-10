@@ -186,6 +186,29 @@ export const autoGenerateFixtures = async (req: Request, res: Response) => {
   }
 };
 
+async function ensurePlayerId(playerId?: string, teamId?: string, defaultName = 'Player'): Promise<string | null> {
+  if (!playerId || playerId.trim() === '') return null;
+  try {
+    const existing = await prisma.player.findUnique({ where: { id: playerId } });
+    if (existing) return existing.id;
+
+    const created = await prisma.player.create({
+      data: {
+        id: playerId,
+        name: defaultName,
+        teamId: teamId || null,
+      },
+    });
+    return created.id;
+  } catch (err) {
+    if (teamId) {
+      const firstTeamPlayer = await prisma.player.findFirst({ where: { teamId } });
+      if (firstTeamPlayer) return firstTeamPlayer.id;
+    }
+    return null;
+  }
+}
+
 export const updateMatch = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -201,9 +224,11 @@ export const updateMatch = async (req: Request, res: Response) => {
       homeScoreRuns,
       homeWickets,
       homeOvers,
+      homeBalls,
       awayScoreRuns,
       awayWickets,
       awayOvers,
+      awayBalls,
     } = req.body;
 
     const match = await prisma.match.findUnique({ where: { id }, include: { innings: true } });
@@ -250,6 +275,32 @@ export const updateMatch = async (req: Request, res: Response) => {
           },
         });
       }
+
+      if (Array.isArray(homeBalls) && homeBalls.length > 0) {
+        await prisma.ballEvent.deleteMany({ where: { inningsId: inn1.id } });
+        for (const b of homeBalls) {
+          const sId = await ensurePlayerId(b.strikerId, match.homeTeamId, 'Striker 1');
+          const nsId = await ensurePlayerId(b.nonStrikerId, match.homeTeamId, 'Striker 2');
+          const bwId = await ensurePlayerId(b.bowlerId, match.awayTeamId, 'Bowler 1');
+
+          await prisma.ballEvent.create({
+            data: {
+              inningsId: inn1.id,
+              overNumber: Number(b.overNumber || 0),
+              ballNumberInOver: Number(b.ballNumberInOver || 0),
+              bowlerId: bwId,
+              strikerId: sId,
+              nonStrikerId: nsId,
+              runs: Number(b.runs || 0),
+              extraType: b.extraType || 'NONE',
+              extraRuns: Number(b.extraRuns || 0),
+              isWicket: !!b.isWicket,
+              wicketType: b.wicketType || null,
+              commentary: b.commentary || null,
+            },
+          });
+        }
+      }
     }
 
     if (awayScoreRuns !== undefined) {
@@ -278,13 +329,63 @@ export const updateMatch = async (req: Request, res: Response) => {
           },
         });
       }
+
+      if (Array.isArray(awayBalls) && awayBalls.length > 0) {
+        await prisma.ballEvent.deleteMany({ where: { inningsId: inn2.id } });
+        for (const b of awayBalls) {
+          const sId = await ensurePlayerId(b.strikerId, match.awayTeamId, 'Striker 1');
+          const nsId = await ensurePlayerId(b.nonStrikerId, match.awayTeamId, 'Striker 2');
+          const bwId = await ensurePlayerId(b.bowlerId, match.homeTeamId, 'Bowler 1');
+
+          await prisma.ballEvent.create({
+            data: {
+              inningsId: inn2.id,
+              overNumber: Number(b.overNumber || 0),
+              ballNumberInOver: Number(b.ballNumberInOver || 0),
+              bowlerId: bwId,
+              strikerId: sId,
+              nonStrikerId: nsId,
+              runs: Number(b.runs || 0),
+              extraType: b.extraType || 'NONE',
+              extraRuns: Number(b.extraRuns || 0),
+              isWicket: !!b.isWicket,
+              wicketType: b.wicketType || null,
+              commentary: b.commentary || null,
+            },
+          });
+        }
+      }
     }
 
     if (status === 'COMPLETED') {
       await recalculateTournamentPointsTable(match.tournamentId);
     }
 
-    return res.json(updatedMatch);
+    const fullUpdatedMatch = await prisma.match.findUnique({
+      where: { id },
+      include: {
+        tournament: true,
+        homeTeam: { include: { players: true } },
+        awayTeam: { include: { players: true } },
+        winnerTeam: true,
+        playerOfTheMatch: true,
+        innings: {
+          include: {
+            battingTeam: true,
+            bowlingTeam: true,
+            balls: { orderBy: { timestamp: 'asc' } },
+          },
+          orderBy: { inningNumber: 'asc' },
+        },
+      },
+    });
+
+    const io = req.app.get('io');
+    if (io && fullUpdatedMatch) {
+      io.to(`match:${id}`).emit('match_updated', fullUpdatedMatch);
+    }
+
+    return res.json(fullUpdatedMatch || updatedMatch);
   } catch (error: any) {
     return res.status(500).json({ error: error.message || 'Failed to update match' });
   }
