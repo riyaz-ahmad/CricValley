@@ -72,6 +72,10 @@ export const BroadcastOverlayPage: React.FC = () => {
     };
   }, [id, socket]);
 
+  const [eventGraphicText, setEventGraphicText] = useState<string>('');
+  const [showEventGraphic, setShowEventGraphic] = useState<boolean>(false);
+  const [lastProcessedBallId, setLastProcessedBallId] = useState<string>('');
+
   if (!match) return <div className="w-screen h-screen bg-transparent"></div>;
 
   const inn1 = match.innings?.find((i) => i.inningNumber === 1);
@@ -79,6 +83,27 @@ export const BroadcastOverlayPage: React.FC = () => {
   const activeInnings = (inn2 && !inn2.isCompleted ? inn2 : inn1) || inn1;
   const battingTeam = activeInnings?.battingTeamId === match.homeTeamId ? match.homeTeam : match.awayTeam;
   const bowlingTeam = activeInnings?.battingTeamId === match.homeTeamId ? match.awayTeam : match.homeTeam;
+
+  const lastBall = activeInnings?.balls && activeInnings.balls.length > 0 ? activeInnings.balls[activeInnings.balls.length - 1] : null;
+
+  useEffect(() => {
+    if (lastBall && lastBall.id !== lastProcessedBallId) {
+      setLastProcessedBallId(lastBall.id);
+      if (lastBall.isWicket) {
+        setEventGraphicText('WICKET! 🚨');
+        setShowEventGraphic(true);
+      } else if (lastBall.runs === 6) {
+        setEventGraphicText('SIX! 🚀');
+        setShowEventGraphic(true);
+      } else if (lastBall.runs === 4) {
+        setEventGraphicText('FOUR! 💥');
+        setShowEventGraphic(true);
+      }
+
+      const timer = setTimeout(() => setShowEventGraphic(false), 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [lastBall, lastProcessedBallId]);
 
   const allPlayers = storage.getPlayers();
   const playerStatsMap: Record<string, { runs: number; balls: number; fours: number; sixes: number }> = {};
@@ -88,7 +113,6 @@ export const BroadcastOverlayPage: React.FC = () => {
     activeInnings.balls.forEach((b) => {
       if (b.strikerId) {
         if (!playerStatsMap[b.strikerId]) playerStatsMap[b.strikerId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
-        // Batter runs exclude extras (Wide, Bye, Leg Bye)
         if (b.extraType !== 'WIDE' && b.extraType !== 'BYE' && b.extraType !== 'LEG_BYE') {
           playerStatsMap[b.strikerId].runs += b.runs;
         }
@@ -109,7 +133,6 @@ export const BroadcastOverlayPage: React.FC = () => {
     });
   }
 
-  const lastBall = activeInnings?.balls && activeInnings.balls.length > 0 ? activeInnings.balls[activeInnings.balls.length - 1] : null;
   const strikerId = lastBall?.strikerId;
   const nonStrikerId = lastBall?.nonStrikerId;
   const bowlerId = lastBall?.bowlerId;
@@ -130,12 +153,47 @@ export const BroadcastOverlayPage: React.FC = () => {
   const overs = activeInnings?.overs ?? 0.0;
   const runRate = overs > 0 ? (totalRuns / (Math.floor(overs) + (overs % 1) * (10 / 6))).toFixed(2) : '0.00';
 
+  // 2nd Innings Run Chase & Required Run Rate (RRR) Calculations
+  const isSecondInnings = activeInnings?.inningNumber === 2 && inn1;
+  const targetRuns = match.targetRuns || (inn1 ? inn1.totalRuns + 1 : 0);
+  const runsNeeded = Math.max(0, targetRuns - totalRuns);
+  const maxMatchOvers = match.tournament?.overs || 20;
+  const ballsBowledInInn = Math.floor(overs) * 6 + Math.round((overs % 1) * 10);
+  const ballsRemaining = Math.max(0, (maxMatchOvers * 6) - ballsBowledInInn);
+  const reqRunRate = ballsRemaining > 0 ? ((runsNeeded / ballsRemaining) * 6).toFixed(2) : '0.00';
+
   const recentBalls = activeInnings?.balls && activeInnings.balls.length > 0
     ? activeInnings.balls.slice(-6)
     : [];
 
   return (
-    <div className="w-screen h-screen bg-transparent p-4 flex flex-col justify-end overflow-hidden select-none">
+    <div className="w-screen h-screen bg-transparent p-4 flex flex-col justify-end items-center overflow-hidden select-none space-y-3">
+      {/* 💥 ANIMATED EVENT OVERLAY GRAPHIC POPUP (FOUR / SIX / WICKET) */}
+      {showEventGraphic && (
+        <div className="animate-bounce transition-all duration-300">
+          <div className={`px-8 py-3 rounded-3xl font-black font-heading text-3xl shadow-2xl border-4 tracking-wider uppercase flex items-center gap-3 ${
+            eventGraphicText.includes('WICKET')
+              ? 'bg-red-600 text-white border-red-400 shadow-red-500/50'
+              : eventGraphicText.includes('SIX')
+              ? 'bg-amber-500 text-slate-950 border-amber-300 shadow-amber-500/50'
+              : 'bg-emerald-500 text-slate-950 border-emerald-300 shadow-emerald-500/50'
+          }`}>
+            {eventGraphicText}
+          </div>
+        </div>
+      )}
+
+      {/* 🎯 2ND INNINGS RUN CHASE TICKER BANNER */}
+      {isSecondInnings && (
+        <div className="bg-[#200a46] border-2 border-[#e6007e] text-white px-6 py-1.5 rounded-full shadow-2xl flex items-center gap-3 font-mono font-black text-xs uppercase tracking-wider animate-pulse">
+          <span className="text-[#e6e600]">RUN CHASE TARGET: {targetRuns}</span>
+          <span>•</span>
+          <span className="text-white">NEED {runsNeeded} RUNS IN {ballsRemaining} BALLS</span>
+          <span>•</span>
+          <span className="text-cyan-300">RRR: {reqRunRate}</span>
+        </div>
+      )}
+
       {/* PROFESSIONAL TV BROADCAST LOWER-THIRD SCOREBAR */}
       <div className="max-w-6xl mx-auto w-full flex items-center justify-center filter drop-shadow-2xl">
         <div className="flex items-center bg-[#200a46] p-1 rounded-r-2xl border-t-2 border-b-2 border-[#3d137b]">

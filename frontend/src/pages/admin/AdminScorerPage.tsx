@@ -21,6 +21,8 @@ export const AdminScorerPage: React.FC = () => {
   const [isWicket, setIsWicket] = useState<boolean>(false);
   const [wicketType, setWicketType] = useState<string>('BOWLED');
   const [showWicketModal, setShowWicketModal] = useState<boolean>(false);
+  const [showOverCompleteModal, setShowOverCompleteModal] = useState<boolean>(false);
+  const [completedOverNumber, setCompletedOverNumber] = useState<number>(0);
 
   const [strikerId, setStrikerId] = useState<string>('');
   const [nonStrikerId, setNonStrikerId] = useState<string>('');
@@ -326,6 +328,47 @@ export const AdminScorerPage: React.FC = () => {
 
     if (swapCount % 2 !== 0) {
       handleSwapStrikers();
+    }
+
+    // Check if Over Complete (6 legal balls bowled)
+    if (isLegalBall && ballsInOver === 0 && overNum > 0) {
+      setCompletedOverNumber(overNum);
+      setShowOverCompleteModal(true);
+    }
+
+    // Auto Match End & Victory Calculator
+    const inn1 = match.innings?.find((i) => i.inningNumber === 1);
+    const maxOvers = match.tournament?.overs || 20;
+
+    if (activeInnings.inningNumber === 1) {
+      // 1st Innings Completion Check
+      if (newWickets >= 10 || newOversFormatted >= maxOvers) {
+        updatedInningsList[0].isCompleted = true;
+        updatedMatch.targetRuns = newTotalRuns + 1;
+      }
+    } else if (activeInnings.inningNumber === 2 && inn1) {
+      // 2nd Innings Auto Victory & Summary Calculator
+      const targetRuns = match.targetRuns || inn1.totalRuns + 1;
+      const battingTeamName = activeInnings.battingTeam?.name || 'Batting Team';
+      const bowlingTeamName = activeInnings.bowlingTeam?.name || 'Bowling Team';
+
+      if (newTotalRuns >= targetRuns) {
+        // Chasing Team Won
+        updatedMatch.status = 'COMPLETED';
+        updatedMatch.winnerTeamId = activeInnings.battingTeamId;
+        updatedMatch.resultSummary = `${battingTeamName} won by ${10 - newWickets} wickets!`;
+      } else if (newWickets >= 10 || newOversFormatted >= maxOvers) {
+        if (newTotalRuns < targetRuns - 1) {
+          // Defending Team Won
+          updatedMatch.status = 'COMPLETED';
+          updatedMatch.winnerTeamId = activeInnings.bowlingTeamId;
+          updatedMatch.resultSummary = `${bowlingTeamName} won by ${targetRuns - 1 - newTotalRuns} runs!`;
+        } else if (newTotalRuns === targetRuns - 1) {
+          // Match Tied
+          updatedMatch.status = 'COMPLETED';
+          updatedMatch.resultSummary = `Match Tied! Both teams scored ${newTotalRuns} runs.`;
+        }
+      }
     }
 
     // Sync ball event to backend API
@@ -709,6 +752,59 @@ export const AdminScorerPage: React.FC = () => {
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* End-of-Over Bowler Selector Modal */}
+      {showOverCompleteModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-950/80 border border-amber-600/40 text-amber-400 font-bold flex items-center justify-center text-lg">
+                ⚾
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider">Over {completedOverNumber} Complete!</span>
+                <h3 className="text-base font-heading font-black text-white">Select Bowler for Over {completedOverNumber + 1}</h3>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-400">Select the bowler who will bowl the next over from the list below:</p>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {bowlTeamPlayers.map((player) => (
+                <button
+                  key={player.id}
+                  type="button"
+                  onClick={() => {
+                    setBowlerId(player.id);
+                    setShowOverCompleteModal(false);
+                  }}
+                  className={`w-full p-3 rounded-2xl border text-left flex items-center justify-between text-xs font-bold transition-all ${
+                    bowlerId === player.id
+                      ? 'bg-cyan-950/80 text-cyan-300 border-cyan-600 shadow-md'
+                      : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-slate-800 text-slate-400 text-[10px] flex items-center justify-center font-mono">
+                      #{player.jerseyNumber || '-'}
+                    </span>
+                    {player.name}
+                  </span>
+                  <span className="text-[10px] text-cyan-400 font-normal uppercase">{player.bowlingStyle || 'Bowler'}</span>
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowOverCompleteModal(false)}
+              className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-2xl text-xs"
+            >
+              Keep Current Bowler ({bowlTeamPlayers.find((p) => p.id === bowlerId)?.name || 'Bowler'})
+            </button>
           </div>
         </div>
       )}

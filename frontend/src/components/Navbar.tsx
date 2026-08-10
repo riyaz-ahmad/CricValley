@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Trophy, Search, Sun, Moon, Shield, Calendar, LayoutDashboard, LogIn, LogOut, Menu, X } from 'lucide-react';
+import { Trophy, Search, Sun, Moon, Shield, Calendar, LayoutDashboard, LogIn, LogOut, Menu, X, Home, UserPlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { GlobalSearchModal } from './GlobalSearchModal';
@@ -143,6 +143,55 @@ export const Navbar: React.FC = () => {
       </nav>
 
       <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+
+      {/* Mobile Sticky Bottom Quick Navigation Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/90 px-2 py-2 flex items-center justify-around shadow-2xl">
+        <Link
+          to="/"
+          className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all ${
+            isActive('/') ? 'text-emerald-400 font-black scale-105' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Home className="w-5 h-5" />
+          <span className="text-[10px] mt-0.5 font-bold">Home</span>
+        </Link>
+        <Link
+          to="/matches"
+          className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all ${
+            isActive('/matches') ? 'text-emerald-400 font-black scale-105' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Calendar className="w-5 h-5" />
+          <span className="text-[10px] mt-0.5 font-bold">Matches</span>
+        </Link>
+        <Link
+          to="/tournaments"
+          className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all ${
+            isActive('/tournaments') ? 'text-emerald-400 font-black scale-105' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Trophy className="w-5 h-5" />
+          <span className="text-[10px] mt-0.5 font-bold">Points</span>
+        </Link>
+        <Link
+          to="/teams"
+          className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all ${
+            isActive('/teams') ? 'text-emerald-400 font-black scale-105' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Shield className="w-5 h-5" />
+          <span className="text-[10px] mt-0.5 font-bold">Teams</span>
+        </Link>
+        <Link
+          to="/register-team"
+          className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all ${
+            isActive('/register-team') ? 'text-cyan-300 font-black scale-105' : 'text-cyan-400 hover:text-cyan-200'
+          }`}
+        >
+          <UserPlus className="w-5 h-5" />
+          <span className="text-[10px] mt-0.5 font-bold">Register</span>
+        </Link>
+      </div>
     </>
   );
 };
