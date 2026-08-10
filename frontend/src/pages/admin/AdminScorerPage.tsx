@@ -353,23 +353,23 @@ export const AdminScorerPage: React.FC = () => {
       setShowOverCompleteModal(true);
     }
 
-    // Auto Match End & Victory Calculator
+    // Innings & Match Completion Checks
     const inn1 = match.innings?.find((i) => i.inningNumber === 1);
     const maxOvers = match.tournament?.overs || 20;
 
     if (activeInnings.inningNumber === 1) {
-      // 1st Innings Completion Check
+      // 1st Innings Completion Check (Do NOT complete match, just mark 1st Innings finished)
       if (newWickets >= 10 || newOversFormatted >= maxOvers) {
         updatedInningsList[0].isCompleted = true;
         updatedMatch.targetRuns = newTotalRuns + 1;
       }
-    } else if (activeInnings.inningNumber === 2 && inn1) {
-      // 2nd Innings Auto Victory & Summary Calculator
+    } else if (activeInnings.inningNumber === 2 && inn1 && inn1.isCompleted && inn1.totalRuns > 0) {
+      // 2nd Innings Auto Victory Check (Only when 1st Innings had valid score > 0)
       const targetRuns = match.targetRuns || inn1.totalRuns + 1;
       const battingTeamName = activeInnings.battingTeam?.name || 'Batting Team';
       const bowlingTeamName = activeInnings.bowlingTeam?.name || 'Bowling Team';
 
-      if (newTotalRuns >= targetRuns) {
+      if (targetRuns > 1 && newTotalRuns >= targetRuns) {
         // Chasing Team Won
         updatedMatch.status = 'COMPLETED';
         updatedMatch.winnerTeamId = activeInnings.battingTeamId;

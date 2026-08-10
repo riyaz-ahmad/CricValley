@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { Trophy, Plus, Shield, Users, Calendar, Edit3, Trash2, CheckCircle2, Table, Zap, X, PlusCircle, Award, Activity, Circle, Video } from 'lucide-react';
 import { Tournament, Team, Player, Match } from '../../types';
 import { apiRequest } from '../../services/api';
-import { storage } from '../../services/storage';
+import { storage, liveMatchChannel } from '../../services/storage';
+import { useSocket } from '../../context/SocketContext';
 
 export const AdminDashboardPage: React.FC = () => {
+  const { socket } = useSocket();
   const [activeTab, setActiveTab] = useState<'tournaments' | 'teams' | 'players' | 'matches'>('tournaments');
 
   // Data states initialized from storage
@@ -466,75 +468,61 @@ export const AdminDashboardPage: React.FC = () => {
       alert('Match deleted!');
     }
   };
-
   // --- RESULT HANDLER ---
   const handleSaveMatchResult = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resultMatch) return;
+
+    const isCompleted = resForm.status === 'COMPLETED';
+    const winnerTeam = isCompleted ? teams.find((t) => t.id === resForm.winnerTeamId) : undefined;
+    const playerOfTheMatch = isCompleted ? players.find((p) => p.id === resForm.playerOfTheMatchId) : undefined;
+
+    const payload = {
+      ...resForm,
+      winnerTeamId: isCompleted ? resForm.winnerTeamId : null,
+      playerOfTheMatchId: isCompleted ? resForm.playerOfTheMatchId : null,
+      resultSummary: isCompleted ? resForm.resultSummary : '',
+    };
+
     try {
       await apiRequest(`/matches/${resultMatch.id}`, {
         method: 'PUT',
-        body: JSON.stringify(resForm),
+        body: JSON.stringify(payload),
       });
-      setShowResultModal(false);
-      setResultMatch(null);
-      fetchAll();
     } catch (err: any) {
-      const winnerTeam = teams.find((t) => t.id === resForm.winnerTeamId);
-      const playerOfTheMatch = players.find((p) => p.id === resForm.playerOfTheMatchId);
-      setMatches((prev) =>
-        prev.map((m) => {
-          if (m.id !== resultMatch.id) return m;
-          return {
-            ...m,
-            status: resForm.status as any,
-            stage: resForm.stage as any,
-            tossWinnerId: resForm.tossWinnerId,
-            tossDecision: resForm.tossDecision as any,
-            winnerTeamId: resForm.winnerTeamId,
-            winnerTeam,
-            playerOfTheMatchId: resForm.playerOfTheMatchId,
-            playerOfTheMatch,
-            resultSummary: resForm.resultSummary,
-            innings: [
-              {
-                id: `inn-1-${m.id}`,
-                matchId: m.id,
-                inningNumber: 1,
-                battingTeamId: m.homeTeamId,
-                bowlingTeamId: m.awayTeamId,
-                totalRuns: resForm.homeScoreRuns,
-                wickets: resForm.homeWickets,
-                overs: resForm.homeOvers,
-                wideExtras: 0,
-                noBallExtras: 0,
-                byeExtras: 0,
-                legByeExtras: 0,
-                isCompleted: true,
-              },
-              {
-                id: `inn-2-${m.id}`,
-                matchId: m.id,
-                inningNumber: 2,
-                battingTeamId: m.awayTeamId,
-                bowlingTeamId: m.homeTeamId,
-                totalRuns: resForm.awayScoreRuns,
-                wickets: resForm.awayWickets,
-                overs: resForm.awayOvers,
-                wideExtras: 0,
-                noBallExtras: 0,
-                byeExtras: 0,
-                legByeExtras: 0,
-                isCompleted: true,
-              },
-            ],
-          };
-        })
-      );
-      setShowResultModal(false);
-      setResultMatch(null);
-      alert('Match score & result saved successfully!');
+      // Fallback
     }
+
+    const updatedMatch: Match = {
+      ...resultMatch,
+      status: resForm.status as any,
+      stage: resForm.stage as any,
+      tossWinnerId: resForm.tossWinnerId,
+      tossDecision: resForm.tossDecision as any,
+      winnerTeamId: isCompleted ? resForm.winnerTeamId : undefined,
+      winnerTeam,
+      playerOfTheMatchId: isCompleted ? resForm.playerOfTheMatchId : undefined,
+      playerOfTheMatch,
+      resultSummary: isCompleted ? resForm.resultSummary : '',
+    };
+
+    setMatches((prev) => prev.map((m) => (m.id === resultMatch.id ? updatedMatch : m)));
+    const allMatches = storage.getMatches();
+    const newMatches = allMatches.map((m) => (m.id === updatedMatch.id ? updatedMatch : m));
+    storage.saveMatches(newMatches);
+
+    if (socket) {
+      socket.emit('match_updated', updatedMatch);
+    }
+    if (liveMatchChannel) {
+      liveMatchChannel.postMessage({ type: 'MATCH_UPDATED', match: updatedMatch });
+    }
+    window.dispatchEvent(new Event('cricvalley_match_updated'));
+    window.dispatchEvent(new Event('storage'));
+
+    setShowResultModal(false);
+    setResultMatch(null);
+    alert(`Match status updated to ${resForm.status}!`);
   };
 
   return (
