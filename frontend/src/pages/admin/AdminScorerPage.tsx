@@ -92,22 +92,13 @@ export const AdminScorerPage: React.FC = () => {
 
         const lastBall = activeInn.balls && activeInn.balls.length > 0 ? activeInn.balls[activeInn.balls.length - 1] : null;
 
+        // Only restore selection from last recorded ball — never auto-select from team list
         if (lastBall) {
           if (lastBall.strikerId) setStrikerId(lastBall.strikerId);
           if (lastBall.nonStrikerId) setNonStrikerId(lastBall.nonStrikerId);
           if (lastBall.bowlerId) setBowlerId(lastBall.bowlerId);
-        } else {
-          if (batPlayers.length >= 2 && !strikerId) {
-            setStrikerId(batPlayers[0].id);
-            setNonStrikerId(batPlayers[1].id);
-          } else if (batPlayers.length > 0 && !strikerId) {
-            setStrikerId(batPlayers[0].id);
-          }
-
-          if (bowlPlayers.length > 0 && !bowlerId) {
-            setBowlerId(bowlPlayers[0].id);
-          }
         }
+        // If no balls recorded yet, leave all dropdowns empty (user must manually select)
       }
     }
     setLoading(false);
@@ -629,14 +620,7 @@ export const AdminScorerPage: React.FC = () => {
               <label className="block text-[11px] font-bold text-emerald-400 uppercase mb-1">Striker (Facing)</label>
               <select
                 value={strikerId}
-                onChange={(e) => {
-                  const sId = e.target.value;
-                  setStrikerId(sId);
-                  if (activeInnings) {
-                    const updatedInningsList = (match.innings || []).map((inn) => (inn.id === activeInnings.id ? { ...inn, currentStrikerId: sId } : inn));
-                    saveUpdatedMatch({ ...match, innings: updatedInningsList });
-                  }
-                }}
+                onChange={(e) => setStrikerId(e.target.value)}
                 className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-bold"
               >
                 <option value="">-- Select Striker --</option>
@@ -652,14 +636,7 @@ export const AdminScorerPage: React.FC = () => {
               <div className="flex gap-2">
                 <select
                   value={nonStrikerId}
-                  onChange={(e) => {
-                    const nsId = e.target.value;
-                    setNonStrikerId(nsId);
-                    if (activeInnings) {
-                      const updatedInningsList = (match.innings || []).map((inn) => (inn.id === activeInnings.id ? { ...inn, currentNonStrikerId: nsId } : inn));
-                      saveUpdatedMatch({ ...match, innings: updatedInningsList });
-                    }
-                  }}
+                  onChange={(e) => setNonStrikerId(e.target.value)}
                   className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-bold"
                 >
                   <option value="">-- Select Non-Striker --</option>
@@ -683,14 +660,7 @@ export const AdminScorerPage: React.FC = () => {
               <label className="block text-[11px] font-bold text-cyan-400 uppercase mb-1">Active Bowler</label>
               <select
                 value={bowlerId}
-                onChange={(e) => {
-                  const bwId = e.target.value;
-                  setBowlerId(bwId);
-                  if (activeInnings) {
-                    const updatedInningsList = (match.innings || []).map((inn) => (inn.id === activeInnings.id ? { ...inn, currentBowlerId: bwId } : inn));
-                    saveUpdatedMatch({ ...match, innings: updatedInningsList });
-                  }
-                }}
+                onChange={(e) => setBowlerId(e.target.value)}
                 className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-bold"
               >
                 <option value="">-- Select Bowler --</option>
@@ -711,7 +681,9 @@ export const AdminScorerPage: React.FC = () => {
                   SR: {currentStrikerStats.balls > 0 ? ((currentStrikerStats.runs / currentStrikerStats.balls) * 100).toFixed(1) : '0.0'}
                 </span>
               </div>
-              <div className="text-sm font-black text-white">{currentStrikerPlayer?.name || 'Striker'}</div>
+              <div className="text-sm font-black text-white">
+                {currentStrikerPlayer ? currentStrikerPlayer.name : <span className="text-slate-500 font-normal italic">Select striker above</span>}
+              </div>
               <div className="flex items-baseline justify-between font-mono">
                 <span className="text-xl font-black text-emerald-400">
                   {currentStrikerStats.runs} <span className="text-xs text-slate-400 font-normal">({currentStrikerStats.balls}b)</span>
@@ -730,7 +702,9 @@ export const AdminScorerPage: React.FC = () => {
                   SR: {currentNonStrikerStats.balls > 0 ? ((currentNonStrikerStats.runs / currentNonStrikerStats.balls) * 100).toFixed(1) : '0.0'}
                 </span>
               </div>
-              <div className="text-sm font-black text-white">{currentNonStrikerPlayer?.name || 'Non-Striker'}</div>
+              <div className="text-sm font-black text-white">
+                {currentNonStrikerPlayer ? currentNonStrikerPlayer.name : <span className="text-slate-500 font-normal italic">Select non-striker above</span>}
+              </div>
               <div className="flex items-baseline justify-between font-mono">
                 <span className="text-xl font-black text-slate-200">
                   {currentNonStrikerStats.runs} <span className="text-xs text-slate-400 font-normal">({currentNonStrikerStats.balls}b)</span>
@@ -749,7 +723,9 @@ export const AdminScorerPage: React.FC = () => {
                   Econ: {currentBowlerStats.balls > 0 ? ((currentBowlerStats.runsConceded / (currentBowlerStats.balls / 6)).toFixed(2)) : '0.00'}
                 </span>
               </div>
-              <div className="text-sm font-black text-white">{currentBowlerPlayer?.name || 'Bowler'}</div>
+              <div className="text-sm font-black text-white">
+                {currentBowlerPlayer ? currentBowlerPlayer.name : <span className="text-slate-500 font-normal italic">Select bowler above</span>}
+              </div>
               <div className="flex items-baseline justify-between font-mono">
                 <span className="text-xl font-black text-cyan-400">
                   {currentBowlerStats.wickets}-{currentBowlerStats.runsConceded}

@@ -158,17 +158,17 @@ export const LiveMatchPage: React.FC = () => {
   const activeBowlersList: string[] = Array.from(activeBowlersSet);
 
   const lastBall = activeInnings?.balls && activeInnings.balls.length > 0 ? activeInnings.balls[activeInnings.balls.length - 1] : null;
-  const strikerId = activeInnings?.currentStrikerId || lastBall?.strikerId || '';
-  const nonStrikerId = activeInnings?.currentNonStrikerId || lastBall?.nonStrikerId || '';
-  const bowlerId = activeInnings?.currentBowlerId || lastBall?.bowlerId || '';
+  const strikerId = lastBall?.strikerId || '';
+  const nonStrikerId = lastBall?.nonStrikerId || '';
+  const bowlerId = lastBall?.bowlerId || '';
 
-  const strikerPlayer = strikerId ? getPlayerData(strikerId, lastBall?.striker, undefined) : null;
-  const nonStrikerPlayer = nonStrikerId ? getPlayerData(nonStrikerId, undefined, undefined) : null;
-  const activeBowlerPlayer = bowlerId ? getPlayerData(bowlerId, lastBall?.bowler, undefined) : null;
+  const strikerPlayer = strikerId ? getPlayerData(strikerId, lastBall?.striker) : null;
+  const nonStrikerPlayer = nonStrikerId ? getPlayerData(nonStrikerId) : null;
+  const activeBowlerPlayer = bowlerId ? getPlayerData(bowlerId, lastBall?.bowler) : null;
 
-  const strikerStats = strikerId ? playerStatsMap[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : null;
-  const nonStrikerStats = nonStrikerId ? playerStatsMap[nonStrikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : null;
-  const activeBowlerStats = bowlerId ? bowlerStatsMap[bowlerId] || { balls: 0, runsConceded: 0, wickets: 0 } : null;
+  const strikerStats = strikerId ? (playerStatsMap[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 }) : null;
+  const nonStrikerStats = nonStrikerId ? (playerStatsMap[nonStrikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 }) : null;
+  const activeBowlerStats = bowlerId ? (bowlerStatsMap[bowlerId] || { balls: 0, runsConceded: 0, wickets: 0 }) : null;
 
   // Run rate calculations
   const totalOvers = activeInnings ? activeInnings.overs : 0;

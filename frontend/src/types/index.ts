@@ -155,9 +155,6 @@ export interface Innings {
   byeExtras: number;
   legByeExtras: number;
   isCompleted: boolean;
-  currentStrikerId?: string;
-  currentNonStrikerId?: string;
-  currentBowlerId?: string;
   balls?: BallEvent[];
 }
 

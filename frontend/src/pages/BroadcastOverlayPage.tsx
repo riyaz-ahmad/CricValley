@@ -160,13 +160,13 @@ export const BroadcastOverlayPage: React.FC = () => {
     });
   }
 
-  const strikerId = activeInnings?.currentStrikerId || lastBall?.strikerId || '';
-  const nonStrikerId = activeInnings?.currentNonStrikerId || lastBall?.nonStrikerId || '';
-  const bowlerId = activeInnings?.currentBowlerId || lastBall?.bowlerId || '';
+  const strikerId = lastBall?.strikerId || '';
+  const nonStrikerId = lastBall?.nonStrikerId || '';
+  const bowlerId = lastBall?.bowlerId || '';
 
-  const strikerPlayer = strikerId ? getPlayerData(strikerId, lastBall?.striker, undefined) : null;
-  const nonStrikerPlayer = nonStrikerId ? getPlayerData(nonStrikerId, undefined, undefined) : null;
-  const activeBowlerPlayer = bowlerId ? getPlayerData(bowlerId, lastBall?.bowler, undefined) : null;
+  const strikerPlayer = strikerId ? getPlayerData(strikerId, lastBall?.striker, 'Striker') : null;
+  const nonStrikerPlayer = nonStrikerId ? getPlayerData(nonStrikerId, undefined, 'Non-Striker') : null;
+  const activeBowlerPlayer = bowlerId ? getPlayerData(bowlerId, lastBall?.bowler, 'Bowler') : null;
 
   const strikerStats = strikerId ? playerStatsMap[strikerId] || { runs: 0, balls: 0 } : { runs: 0, balls: 0 };
   const nonStrikerStats = nonStrikerId ? playerStatsMap[nonStrikerId] || { runs: 0, balls: 0 } : { runs: 0, balls: 0 };
