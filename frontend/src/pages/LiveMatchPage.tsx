@@ -17,20 +17,14 @@ export const LiveMatchPage: React.FC = () => {
     if (!id) return;
     if (isInitial && !match) setLoading(true);
 
-    const localMatches = storage.getMatches();
-    const localMatch = localMatches.find((m) => m.id === id);
-
     try {
+      // Always use API as source of truth for public portal
       const res = await apiRequest<Match>(`/matches/${id}`);
-      const localBallsCount = localMatch?.innings?.reduce((acc, inn) => acc + (inn.balls?.length || 0), 0) || 0;
-      const resBallsCount = res?.innings?.reduce((acc, inn) => acc + (inn.balls?.length || 0), 0) || 0;
-
-      if (localMatch && localBallsCount >= resBallsCount) {
-        setMatch(localMatch);
-      } else {
-        setMatch(res);
-      }
+      if (res) setMatch(res);
     } catch (err) {
+      // Only use localStorage as fallback if API is down
+      const localMatches = storage.getMatches();
+      const localMatch = localMatches.find((m) => m.id === id);
       if (localMatch) setMatch(localMatch);
     } finally {
       setLoading(false);

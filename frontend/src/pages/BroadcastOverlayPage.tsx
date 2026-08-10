@@ -12,20 +12,14 @@ export const BroadcastOverlayPage: React.FC = () => {
 
   const fetchMatch = async () => {
     if (!id) return;
-    const localMatches = storage.getMatches();
-    const localMatch = localMatches.find((m) => m.id === id) || null;
-
     try {
+      // Always use API as source of truth
       const res = await apiRequest<Match>(`/matches/${id}`);
-      const localBallsCount = localMatch?.innings?.reduce((acc, inn) => acc + (inn.balls?.length || 0), 0) || 0;
-      const resBallsCount = res?.innings?.reduce((acc, inn) => acc + (inn.balls?.length || 0), 0) || 0;
-
-      if (localMatch && localBallsCount >= resBallsCount) {
-        setMatch(localMatch);
-      } else {
-        setMatch(res);
-      }
+      if (res) setMatch(res);
     } catch (err) {
+      // Only fallback to localStorage if API is unreachable
+      const localMatches = storage.getMatches();
+      const localMatch = localMatches.find((m) => m.id === id) || null;
       if (localMatch) setMatch(localMatch);
     }
   };

@@ -60,6 +60,11 @@ export const getMatchScorecard = async (req: Request, res: Response) => {
             battingTeam: true,
             bowlingTeam: true,
             balls: {
+              include: {
+                striker: true,
+                nonStriker: true,
+                bowler: true,
+              },
               orderBy: { timestamp: 'asc' },
             },
           },
