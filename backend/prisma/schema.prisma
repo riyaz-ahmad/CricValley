@@ -179,9 +179,9 @@ model BallEvent {
   inningsId         String
   overNumber        Int
   ballNumberInOver  Int
-  bowlerId          String
-  strikerId         String
-  nonStrikerId      String
+  bowlerId          String?
+  strikerId         String?
+  nonStrikerId      String?
   runs              Int      @default(0)
   extraType         String   @default("NONE") // NONE, WIDE, NO_BALL, BYE, LEG_BYE
   extraRuns         Int      @default(0)
@@ -195,9 +195,9 @@ model BallEvent {
   timestamp         DateTime @default(now())
 
   innings           Innings  @relation(fields: [inningsId], references: [id], onDelete: Cascade)
-  bowler            Player   @relation("Bowler", fields: [bowlerId], references: [id], onDelete: Cascade)
-  striker           Player   @relation("Striker", fields: [strikerId], references: [id], onDelete: Cascade)
-  nonStriker        Player   @relation("NonStriker", fields: [nonStrikerId], references: [id], onDelete: Cascade)
+  bowler            Player?  @relation("Bowler", fields: [bowlerId], references: [id], onDelete: SetNull)
+  striker           Player?  @relation("Striker", fields: [strikerId], references: [id], onDelete: SetNull)
+  nonStriker        Player?  @relation("NonStriker", fields: [nonStrikerId], references: [id], onDelete: SetNull)
   dismissedPlayer   Player?  @relation("DismissedPlayer", fields: [dismissedPlayerId], references: [id], onDelete: SetNull)
   fielder           Player?  @relation("Fielder", fields: [fielderId], references: [id], onDelete: SetNull)
 }

@@ -21,6 +21,29 @@ export interface RecordBallInput {
   wagonWheelZone?: string;
 }
 
+async function ensurePlayerId(playerId?: string, teamId?: string, defaultName = 'Player'): Promise<string | null> {
+  if (!playerId || playerId.trim() === '') return null;
+  try {
+    const existing = await prisma.player.findUnique({ where: { id: playerId } });
+    if (existing) return existing.id;
+
+    const created = await prisma.player.create({
+      data: {
+        id: playerId,
+        name: defaultName,
+        teamId: teamId || null,
+      },
+    });
+    return created.id;
+  } catch (err) {
+    if (teamId) {
+      const firstTeamPlayer = await prisma.player.findFirst({ where: { teamId } });
+      if (firstTeamPlayer) return firstTeamPlayer.id;
+    }
+    return null;
+  }
+}
+
 export async function recordBall(input: RecordBallInput) {
   const {
     matchId,
@@ -60,6 +83,11 @@ export async function recordBall(input: RecordBallInput) {
 
   if (!currentInnings) throw new Error('Innings not found');
 
+  // Ensure players exist in DB to prevent foreign key errors
+  const safeStrikerId = await ensurePlayerId(strikerId, currentInnings.battingTeamId, 'Striker 1');
+  const safeNonStrikerId = await ensurePlayerId(nonStrikerId, currentInnings.battingTeamId, 'Striker 2');
+  const safeBowlerId = await ensurePlayerId(bowlerId, currentInnings.bowlingTeamId, 'Bowler 1');
+
   // Calculate total runs for this ball
   const isWide = extraType === 'WIDE';
   const isNoBall = extraType === 'NO_BALL';
@@ -77,9 +105,9 @@ export async function recordBall(input: RecordBallInput) {
       inningsId,
       overNumber,
       ballNumberInOver,
-      bowlerId,
-      strikerId,
-      nonStrikerId,
+      bowlerId: safeBowlerId,
+      strikerId: safeStrikerId,
+      nonStrikerId: safeNonStrikerId,
       runs,
       extraType,
       extraRuns,

@@ -54,53 +54,54 @@ export async function getTournamentStats(tournamentId: string) {
 
   for (const b of balls) {
     // Batsman stats
-    if (!batsmenMap.has(b.strikerId)) {
-      batsmenMap.set(b.strikerId, {
-        id: b.striker.id,
-        name: b.striker.name,
-        photoUrl: b.striker.photoUrl,
-        runs: 0,
-        balls: 0,
-        fours: 0,
-        sixes: 0,
-        inningsCount: 0,
-        outs: 0,
-        highestScore: 0,
-      });
-    }
+    if (b.strikerId && b.striker) {
+      if (!batsmenMap.has(b.strikerId)) {
+        batsmenMap.set(b.strikerId, {
+          id: b.striker.id,
+          name: b.striker.name,
+          photoUrl: b.striker.photoUrl,
+          runs: 0,
+          balls: 0,
+          fours: 0,
+          sixes: 0,
+          inningsCount: 0,
+          outs: 0,
+          highestScore: 0,
+        });
+      }
 
-    const batStat = batsmenMap.get(b.strikerId)!;
-    // Wides do not add to balls faced by batsman
-    if (b.extraType !== 'WIDE') {
-      batStat.balls += 1;
+      const batStat = batsmenMap.get(b.strikerId)!;
+      if (b.extraType !== 'WIDE') {
+        batStat.balls += 1;
+      }
+      batStat.runs += b.runs;
+      if (b.runs === 4) batStat.fours += 1;
+      if (b.runs === 6) batStat.sixes += 1;
     }
-    // Only count bat runs (not extras)
-    batStat.runs += b.runs;
-    if (b.runs === 4) batStat.fours += 1;
-    if (b.runs === 6) batStat.sixes += 1;
 
     // Bowler stats
-    if (!bowlersMap.has(b.bowlerId)) {
-      bowlersMap.set(b.bowlerId, {
-        id: b.bowler.id,
-        name: b.bowler.name,
-        photoUrl: b.bowler.photoUrl,
-        wickets: 0,
-        runsConceded: 0,
-        legalBalls: 0,
-      });
-    }
+    if (b.bowlerId && b.bowler) {
+      if (!bowlersMap.has(b.bowlerId)) {
+        bowlersMap.set(b.bowlerId, {
+          id: b.bowler.id,
+          name: b.bowler.name,
+          photoUrl: b.bowler.photoUrl,
+          wickets: 0,
+          runsConceded: 0,
+          legalBalls: 0,
+        });
+      }
 
-    const bowlStat = bowlersMap.get(b.bowlerId)!;
-    if (b.extraType !== 'WIDE' && b.extraType !== 'NO_BALL') {
-      bowlStat.legalBalls += 1;
-    }
-    // Bowler conceded runs include runs off bat + wides/noballs (excluding byes & legbyes)
-    if (b.extraType === 'NONE' || b.extraType === 'WIDE' || b.extraType === 'NO_BALL') {
-      bowlStat.runsConceded += b.runs + b.extraRuns;
-    }
-    if (b.isWicket && b.wicketType !== 'RUN_OUT' && b.wicketType !== 'RETIRED') {
-      bowlStat.wickets += 1;
+      const bowlStat = bowlersMap.get(b.bowlerId)!;
+      if (b.extraType !== 'WIDE' && b.extraType !== 'NO_BALL') {
+        bowlStat.legalBalls += 1;
+      }
+      if (b.extraType === 'NONE' || b.extraType === 'WIDE' || b.extraType === 'NO_BALL') {
+        bowlStat.runsConceded += b.runs + b.extraRuns;
+      }
+      if (b.isWicket && b.wicketType !== 'RUN_OUT' && b.wicketType !== 'RETIRED') {
+        bowlStat.wickets += 1;
+      }
     }
   }
 
