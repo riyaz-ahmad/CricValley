@@ -275,32 +275,6 @@ export const updateMatch = async (req: Request, res: Response) => {
           },
         });
       }
-
-      if (Array.isArray(homeBalls) && homeBalls.length > 0) {
-        await prisma.ballEvent.deleteMany({ where: { inningsId: inn1.id } });
-        for (const b of homeBalls) {
-          const sId = await ensurePlayerId(b.strikerId, match.homeTeamId, 'Striker 1');
-          const nsId = await ensurePlayerId(b.nonStrikerId, match.homeTeamId, 'Striker 2');
-          const bwId = await ensurePlayerId(b.bowlerId, match.awayTeamId, 'Bowler 1');
-
-          await prisma.ballEvent.create({
-            data: {
-              inningsId: inn1.id,
-              overNumber: Number(b.overNumber || 0),
-              ballNumberInOver: Number(b.ballNumberInOver || 0),
-              bowlerId: bwId,
-              strikerId: sId,
-              nonStrikerId: nsId,
-              runs: Number(b.runs || 0),
-              extraType: b.extraType || 'NONE',
-              extraRuns: Number(b.extraRuns || 0),
-              isWicket: !!b.isWicket,
-              wicketType: b.wicketType || null,
-              commentary: b.commentary || null,
-            },
-          });
-        }
-      }
     }
 
     if (awayScoreRuns !== undefined) {
@@ -328,32 +302,6 @@ export const updateMatch = async (req: Request, res: Response) => {
             isCompleted: status === 'COMPLETED',
           },
         });
-      }
-
-      if (Array.isArray(awayBalls) && awayBalls.length > 0) {
-        await prisma.ballEvent.deleteMany({ where: { inningsId: inn2.id } });
-        for (const b of awayBalls) {
-          const sId = await ensurePlayerId(b.strikerId, match.awayTeamId, 'Striker 1');
-          const nsId = await ensurePlayerId(b.nonStrikerId, match.awayTeamId, 'Striker 2');
-          const bwId = await ensurePlayerId(b.bowlerId, match.homeTeamId, 'Bowler 1');
-
-          await prisma.ballEvent.create({
-            data: {
-              inningsId: inn2.id,
-              overNumber: Number(b.overNumber || 0),
-              ballNumberInOver: Number(b.ballNumberInOver || 0),
-              bowlerId: bwId,
-              strikerId: sId,
-              nonStrikerId: nsId,
-              runs: Number(b.runs || 0),
-              extraType: b.extraType || 'NONE',
-              extraRuns: Number(b.extraRuns || 0),
-              isWicket: !!b.isWicket,
-              wicketType: b.wicketType || null,
-              commentary: b.commentary || null,
-            },
-          });
-        }
       }
     }
 

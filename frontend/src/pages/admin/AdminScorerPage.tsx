@@ -405,7 +405,19 @@ export const AdminScorerPage: React.FC = () => {
         wicketType: currentIsWicket ? wicketType : undefined,
         commentary: commentaryText || `${runs} runs scored by ${striker?.name || 'Batsman'}`,
       }),
-    }).catch(() => {});
+    })
+      .then((res: any) => {
+        if (res && res.match) {
+          setMatch(res.match);
+          const allMatches = storage.getMatches();
+          const exists = allMatches.some((m) => m.id === res.match.id);
+          const newMatches = exists
+            ? allMatches.map((m) => (m.id === res.match.id ? res.match : m))
+            : [...allMatches, res.match];
+          storage.saveMatches(newMatches);
+        }
+      })
+      .catch(() => {});
 
     saveUpdatedMatch(updatedMatch);
 
