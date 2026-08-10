@@ -99,6 +99,13 @@ export const LiveMatchPage: React.FC = () => {
     if (p && p.id) allPlayersMap.set(p.id, p);
   });
 
+  if (activeInnings && activeInnings.balls) {
+    activeInnings.balls.forEach((b) => {
+      if (b.striker && b.striker.id) allPlayersMap.set(b.striker.id, b.striker);
+      if (b.bowler && b.bowler.id) allPlayersMap.set(b.bowler.id, b.bowler);
+    });
+  }
+
   const getPlayerData = (playerId?: string, ballPlayerObj?: any, defaultName = 'Player') => {
     if (playerId && allPlayersMap.has(playerId)) return allPlayersMap.get(playerId)!;
     if (ballPlayerObj && ballPlayerObj.name) return ballPlayerObj;
@@ -112,37 +119,38 @@ export const LiveMatchPage: React.FC = () => {
   const activeBowlersSet = new Set<string>();
 
   if (activeInnings && activeInnings.balls) {
-    const defaultStrikerId = (battingTeam.players && battingTeam.players[0]?.id) || 'player-1';
-    const defaultNonStrikerId = (battingTeam.players && battingTeam.players[1]?.id) || (battingTeam.players && battingTeam.players[0]?.id) || 'player-2';
-    const defaultBowlerId = (bowlingTeam.players && bowlingTeam.players[0]?.id) || 'bowler-1';
-
     activeInnings.balls.forEach((b) => {
-      const sId = b.strikerId || defaultStrikerId;
-      const nsId = b.nonStrikerId || defaultNonStrikerId;
-      const bwId = b.bowlerId || defaultBowlerId;
+      const sId = b.strikerId;
+      const nsId = b.nonStrikerId;
+      const bwId = b.bowlerId;
 
-      activeBattersSet.add(sId);
-      if (nsId) activeBattersSet.add(nsId);
-      activeBowlersSet.add(bwId);
-
-      if (!playerStatsMap[sId]) playerStatsMap[sId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
-      if (b.extraType !== 'WIDE' && b.extraType !== 'BYE' && b.extraType !== 'LEG_BYE') {
-        playerStatsMap[sId].runs += b.runs;
+      if (sId) {
+        activeBattersSet.add(sId);
+        if (!playerStatsMap[sId]) playerStatsMap[sId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
+        if (b.extraType !== 'WIDE' && b.extraType !== 'BYE' && b.extraType !== 'LEG_BYE') {
+          playerStatsMap[sId].runs += b.runs;
+        }
+        if (b.extraType !== 'WIDE') playerStatsMap[sId].balls += 1;
+        if (b.runs === 4) playerStatsMap[sId].fours += 1;
+        if (b.runs === 6) playerStatsMap[sId].sixes += 1;
       }
-      if (b.extraType !== 'WIDE') playerStatsMap[sId].balls += 1;
-      if (b.runs === 4) playerStatsMap[sId].fours += 1;
-      if (b.runs === 6) playerStatsMap[sId].sixes += 1;
 
-      if (!playerStatsMap[nsId]) playerStatsMap[nsId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
+      if (nsId) {
+        activeBattersSet.add(nsId);
+        if (!playerStatsMap[nsId]) playerStatsMap[nsId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
+      }
 
-      if (!bowlerStatsMap[bwId]) bowlerStatsMap[bwId] = { balls: 0, runsConceded: 0, wickets: 0 };
-      const isLegal = b.extraType !== 'WIDE' && b.extraType !== 'NO_BALL';
-      if (isLegal) bowlerStatsMap[bwId].balls += 1;
-      let wide = b.extraType === 'WIDE' ? (1 + b.runs) : 0;
-      let noBall = b.extraType === 'NO_BALL' ? (1 + b.runs) : 0;
-      let runsOnBowler = (b.extraType === 'BYE' || b.extraType === 'LEG_BYE') ? 0 : b.runs;
-      bowlerStatsMap[bwId].runsConceded += runsOnBowler + wide + noBall;
-      if (b.isWicket && b.wicketType !== 'RUN_OUT') bowlerStatsMap[bwId].wickets += 1;
+      if (bwId) {
+        activeBowlersSet.add(bwId);
+        if (!bowlerStatsMap[bwId]) bowlerStatsMap[bwId] = { balls: 0, runsConceded: 0, wickets: 0 };
+        const isLegal = b.extraType !== 'WIDE' && b.extraType !== 'NO_BALL';
+        if (isLegal) bowlerStatsMap[bwId].balls += 1;
+        let wide = b.extraType === 'WIDE' ? (1 + b.runs) : 0;
+        let noBall = b.extraType === 'NO_BALL' ? (1 + b.runs) : 0;
+        let runsOnBowler = (b.extraType === 'BYE' || b.extraType === 'LEG_BYE') ? 0 : b.runs;
+        bowlerStatsMap[bwId].runsConceded += runsOnBowler + wide + noBall;
+        if (b.isWicket && b.wicketType !== 'RUN_OUT') bowlerStatsMap[bwId].wickets += 1;
+      }
     });
   }
 

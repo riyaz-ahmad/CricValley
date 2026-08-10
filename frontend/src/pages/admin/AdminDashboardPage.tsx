@@ -933,7 +933,7 @@ export const AdminDashboardPage: React.FC = () => {
                             tossWinnerId: m.tossWinnerId || m.homeTeamId,
                             tossDecision: m.tossDecision || 'BAT',
                             winnerTeamId: calculatedWinnerId,
-                            playerOfTheMatchId: m.playerOfTheMatchId || (matchedPlayers[0]?.id || ''),
+                            playerOfTheMatchId: m.playerOfTheMatchId || '',
                             resultSummary: calculatedSummary || '',
                             homeScoreRuns: homeRuns,
                             homeWickets: homeWkts,

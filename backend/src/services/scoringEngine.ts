@@ -69,6 +69,8 @@ export async function recordBall(input: RecordBallInput) {
     where: { id: matchId },
     include: {
       tournament: true,
+      homeTeam: true,
+      awayTeam: true,
       innings: {
         orderBy: { inningNumber: 'asc' },
       },
@@ -170,14 +172,15 @@ export async function recordBall(input: RecordBallInput) {
       },
     });
   } else if (currentInnings.inningNumber === 2) {
-    const target = match.targetRuns || 0;
     const firstInnings = match.innings.find((i) => i.inningNumber === 1);
+    const target = match.targetRuns || (firstInnings ? firstInnings.totalRuns + 1 : 0);
 
-    if (newTotalRuns >= target) {
+    if (target > 1 && firstInnings && firstInnings.isCompleted && newTotalRuns >= target) {
       // Team 2 Won!
       const winningTeamId = currentInnings.battingTeamId;
       const wicketsLeft = 10 - newWickets;
-      const resultSummary = `${winningTeamId === match.homeTeamId ? match.homeTeamId : match.awayTeamId} won by ${wicketsLeft} wickets`;
+      const winningTeamName = winningTeamId === match.homeTeamId ? match.homeTeam.name : match.awayTeam.name;
+      const resultSummary = `${winningTeamName} won by ${wicketsLeft} wickets`;
 
       await prisma.match.update({
         where: { id: matchId },
