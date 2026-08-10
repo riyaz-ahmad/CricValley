@@ -67,8 +67,8 @@ export async function recordBall(input: RecordBallInput) {
   
   // Total score addition for the ball
   let ballTotalRuns = runs + extraRuns;
-  if (isWide || isNoBall) {
-    ballTotalRuns += 1; // standard penalty run for wide/no ball
+  if ((isWide || isNoBall) && extraRuns === 0) {
+    ballTotalRuns += 1; // standard penalty run for wide/no ball if not already provided
   }
 
   // Save the ball event
@@ -82,7 +82,7 @@ export async function recordBall(input: RecordBallInput) {
       nonStrikerId,
       runs,
       extraType,
-      extraRuns: isWide || isNoBall ? extraRuns + 1 : extraRuns,
+      extraRuns,
       isWicket: !!isWicket,
       wicketType,
       dismissedPlayerId,

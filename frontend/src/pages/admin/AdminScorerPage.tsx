@@ -232,10 +232,11 @@ export const AdminScorerPage: React.FC = () => {
     saveUpdatedMatch(updatedMatch);
   };
 
-  const handleSwapStrikers = () => {
-    const temp = strikerId;
-    setStrikerId(nonStrikerId);
-    setNonStrikerId(temp);
+  const handleSwapStrikers = (currStrikerId?: string, currNonStrikerId?: string) => {
+    const sId = currStrikerId || strikerId || (match?.homeTeam?.players && match.homeTeam.players[0]?.id) || '';
+    const nsId = currNonStrikerId || nonStrikerId || (match?.homeTeam?.players && match.homeTeam.players[1]?.id) || '';
+    setStrikerId(nsId);
+    setNonStrikerId(sId);
   };
 
   const handleRecordBall = (
@@ -334,7 +335,7 @@ export const AdminScorerPage: React.FC = () => {
     }
 
     if (swapCount % 2 !== 0) {
-      handleSwapStrikers();
+      handleSwapStrikers(effectiveStrikerId, effectiveNonStrikerId);
     }
 
     // Check if Over Complete (6 legal balls bowled)
@@ -459,6 +460,42 @@ export const AdminScorerPage: React.FC = () => {
     saveUpdatedMatch(updatedMatch);
     alert('Last ball undone successfully!');
   };
+
+  // Calculate live batter & bowler stats for Admin Console
+  const playerStatsMap: Record<string, { runs: number; balls: number; fours: number; sixes: number }> = {};
+  const bowlerStatsMap: Record<string, { balls: number; runsConceded: number; wickets: number }> = {};
+
+  if (activeInnings && activeInnings.balls) {
+    activeInnings.balls.forEach((b) => {
+      if (b.strikerId) {
+        if (!playerStatsMap[b.strikerId]) playerStatsMap[b.strikerId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
+        if (b.extraType !== 'WIDE' && b.extraType !== 'BYE' && b.extraType !== 'LEG_BYE') {
+          playerStatsMap[b.strikerId].runs += b.runs;
+        }
+        if (b.extraType !== 'WIDE') playerStatsMap[b.strikerId].balls += 1;
+        if (b.runs === 4) playerStatsMap[b.strikerId].fours += 1;
+        if (b.runs === 6) playerStatsMap[b.strikerId].sixes += 1;
+      }
+      if (b.bowlerId) {
+        if (!bowlerStatsMap[b.bowlerId]) bowlerStatsMap[b.bowlerId] = { balls: 0, runsConceded: 0, wickets: 0 };
+        const isLegal = b.extraType !== 'WIDE' && b.extraType !== 'NO_BALL';
+        if (isLegal) bowlerStatsMap[b.bowlerId].balls += 1;
+        let wide = b.extraType === 'WIDE' ? (1 + b.runs) : 0;
+        let noBall = b.extraType === 'NO_BALL' ? (1 + b.runs) : 0;
+        let runsOnBowler = (b.extraType === 'BYE' || b.extraType === 'LEG_BYE') ? 0 : b.runs;
+        bowlerStatsMap[b.bowlerId].runsConceded += runsOnBowler + wide + noBall;
+        if (b.isWicket && b.wicketType !== 'RUN_OUT') bowlerStatsMap[b.bowlerId].wickets += 1;
+      }
+    });
+  }
+
+  const currentStrikerPlayer = allPlayers.find((p) => p.id === (strikerId || batTeamPlayers[0]?.id)) || batTeamPlayers[0];
+  const currentNonStrikerPlayer = allPlayers.find((p) => p.id === (nonStrikerId || batTeamPlayers[1]?.id)) || batTeamPlayers[1];
+  const currentBowlerPlayer = allPlayers.find((p) => p.id === (bowlerId || bowlTeamPlayers[0]?.id)) || bowlTeamPlayers[0];
+
+  const currentStrikerStats = currentStrikerPlayer ? playerStatsMap[currentStrikerPlayer.id] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : { runs: 0, balls: 0, fours: 0, sixes: 0 };
+  const currentNonStrikerStats = currentNonStrikerPlayer ? playerStatsMap[currentNonStrikerPlayer.id] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : { runs: 0, balls: 0, fours: 0, sixes: 0 };
+  const currentBowlerStats = currentBowlerPlayer ? bowlerStatsMap[currentBowlerPlayer.id] || { balls: 0, runsConceded: 0, wickets: 0 } : { balls: 0, runsConceded: 0, wickets: 0 };
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -610,7 +647,7 @@ export const AdminScorerPage: React.FC = () => {
                 </select>
                 <button
                   type="button"
-                  onClick={handleSwapStrikers}
+                  onClick={() => handleSwapStrikers()}
                   title="Swap Striker & Non-Striker"
                   className="p-2.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 rounded-xl shrink-0"
                 >
@@ -633,6 +670,66 @@ export const AdminScorerPage: React.FC = () => {
                   ))
                 )}
               </select>
+            </div>
+          </div>
+
+          {/* 📊 LIVE INDIVIDUAL PLAYER STATS CARD (FOR ADMIN SCORER) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800 text-xs">
+            {/* Striker Stats */}
+            <div className="p-3 bg-slate-900 border border-emerald-500/40 rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-emerald-400 font-extrabold uppercase">
+                <span>🏏 Striker *</span>
+                <span className="text-[10px] text-amber-400 font-mono font-bold">
+                  SR: {currentStrikerStats.balls > 0 ? ((currentStrikerStats.runs / currentStrikerStats.balls) * 100).toFixed(1) : '0.0'}
+                </span>
+              </div>
+              <div className="text-sm font-black text-white">{currentStrikerPlayer?.name || 'Striker'}</div>
+              <div className="flex items-baseline justify-between font-mono">
+                <span className="text-xl font-black text-emerald-400">
+                  {currentStrikerStats.runs} <span className="text-xs text-slate-400 font-normal">({currentStrikerStats.balls}b)</span>
+                </span>
+                <span className="text-[11px] text-slate-300 font-bold">
+                  4s: <strong className="text-white">{currentStrikerStats.fours}</strong> | 6s: <strong className="text-amber-400">{currentStrikerStats.sixes}</strong>
+                </span>
+              </div>
+            </div>
+
+            {/* Non-Striker Stats */}
+            <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-slate-400 font-bold uppercase">
+                <span>🏃 Non-Striker</span>
+                <span className="text-[10px] text-slate-500 font-mono">
+                  SR: {currentNonStrikerStats.balls > 0 ? ((currentNonStrikerStats.runs / currentNonStrikerStats.balls) * 100).toFixed(1) : '0.0'}
+                </span>
+              </div>
+              <div className="text-sm font-black text-white">{currentNonStrikerPlayer?.name || 'Non-Striker'}</div>
+              <div className="flex items-baseline justify-between font-mono">
+                <span className="text-xl font-black text-slate-200">
+                  {currentNonStrikerStats.runs} <span className="text-xs text-slate-400 font-normal">({currentNonStrikerStats.balls}b)</span>
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  4s: {currentNonStrikerStats.fours} | 6s: {currentNonStrikerStats.sixes}
+                </span>
+              </div>
+            </div>
+
+            {/* Bowler Stats */}
+            <div className="p-3 bg-slate-900 border border-cyan-500/40 rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-cyan-400 font-extrabold uppercase">
+                <span>⚾ Bowler</span>
+                <span className="text-[10px] text-cyan-300 font-mono">
+                  Econ: {currentBowlerStats.balls > 0 ? ((currentBowlerStats.runsConceded / (currentBowlerStats.balls / 6)).toFixed(2)) : '0.00'}
+                </span>
+              </div>
+              <div className="text-sm font-black text-white">{currentBowlerPlayer?.name || 'Bowler'}</div>
+              <div className="flex items-baseline justify-between font-mono">
+                <span className="text-xl font-black text-cyan-400">
+                  {currentBowlerStats.wickets}-{currentBowlerStats.runsConceded}
+                </span>
+                <span className="text-xs text-slate-300 font-bold">
+                  ({Math.floor(currentBowlerStats.balls / 6)}.{currentBowlerStats.balls % 6} ov)
+                </span>
+              </div>
             </div>
           </div>
 
