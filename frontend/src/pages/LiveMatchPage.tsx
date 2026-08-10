@@ -457,8 +457,8 @@ export const LiveMatchPage: React.FC = () => {
           </div>
         )}
 
-        {/* Man of the Match Badge */}
-        {match.playerOfTheMatch && (
+        {/* Man of the Match Badge (Render ONLY when match is COMPLETED) */}
+        {match.status === 'COMPLETED' && match.playerOfTheMatch && (
           <div className="bg-gradient-to-r from-emerald-950 to-teal-950 border border-emerald-800/60 p-5 rounded-2xl text-center space-y-1 shadow-lg">
             <div className="text-xs text-emerald-400 uppercase font-black tracking-wider flex items-center justify-center gap-1.5">
               <Award className="w-4 h-4 text-emerald-400" /> Player of the Match Award

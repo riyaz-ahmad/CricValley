@@ -854,6 +854,7 @@ export const AdminScorerPage: React.FC = () => {
                   onClick={() => {
                     setWicketType(wt);
                     setShowWicketModal(false);
+                    handleRecordBall(selectedRuns, extraType, true);
                   }}
                   className={`p-3 rounded-xl border text-left ${
                     wicketType === wt ? 'bg-red-950 text-red-400 border-red-700' : 'bg-slate-950 text-slate-300 border-slate-800'

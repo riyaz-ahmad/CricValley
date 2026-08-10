@@ -876,28 +876,38 @@ export const AdminDashboardPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-3 px-3">
-                      <div className="text-amber-400 font-bold">
-                        {m.winnerTeam ? `🏆 Winner: ${m.winnerTeam.name}` : m.resultSummary || '-'}
-                      </div>
-                      {m.playerOfTheMatch && (
-                        <div className="text-emerald-400 font-semibold text-[11px] flex items-center gap-1 mt-0.5">
-                          <Award className="w-3.5 h-3.5" /> M.O.M: {m.playerOfTheMatch.name}
-                        </div>
+                      {m.status === 'COMPLETED' ? (
+                        <>
+                          <div className="text-amber-400 font-bold">
+                            {m.winnerTeam ? `🏆 Winner: ${m.winnerTeam.name}` : m.resultSummary || '-'}
+                          </div>
+                          {m.playerOfTheMatch && (
+                            <div className="text-emerald-400 font-semibold text-[11px] flex items-center gap-1 mt-0.5">
+                              <Award className="w-3.5 h-3.5" /> M.O.M: {m.playerOfTheMatch.name}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-slate-500 font-mono text-xs">-</span>
                       )}
                     </td>
                     <td className="py-3 px-3 text-right flex items-center justify-end gap-2">
-                      <Link
-                        to={`/admin/streamer/${m.id}`}
-                        className="px-3 py-1.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black rounded-lg text-[11px] shadow-md flex items-center gap-1"
-                      >
-                        <Video className="w-3.5 h-3.5" /> Cam Stream
-                      </Link>
-                      <Link
-                        to={`/admin/scorer/${m.id}`}
-                        className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black rounded-lg text-[11px] shadow-md flex items-center gap-1"
-                      >
-                        <Activity className="w-3.5 h-3.5" /> Live Scorer
-                      </Link>
+                      {m.status === 'LIVE' && (
+                        <>
+                          <Link
+                            to={`/admin/scorer/${m.id}`}
+                            className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black rounded-lg text-[11px] shadow-md flex items-center gap-1"
+                          >
+                            <Activity className="w-3.5 h-3.5" /> Live Scorer
+                          </Link>
+                          <Link
+                            to={`/admin/streamer/${m.id}`}
+                            className="px-3 py-1.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black rounded-lg text-[11px] shadow-md flex items-center gap-1"
+                          >
+                            <Video className="w-3.5 h-3.5" /> Cam Stream
+                          </Link>
+                        </>
+                      )}
                       <button
                         onClick={() => {
                           setResultMatch(m);
@@ -930,13 +940,13 @@ export const AdminDashboardPage: React.FC = () => {
                           }
 
                           setResForm({
-                            status: m.status || 'COMPLETED',
+                            status: m.status || 'UPCOMING',
                             stage: m.stage,
                             tossWinnerId: m.tossWinnerId || m.homeTeamId,
                             tossDecision: m.tossDecision || 'BAT',
                             winnerTeamId: calculatedWinnerId,
                             playerOfTheMatchId: m.playerOfTheMatchId || (matchedPlayers[0]?.id || ''),
-                            resultSummary: calculatedSummary || `${m.homeTeam.shortName} vs ${m.awayTeam.shortName}`,
+                            resultSummary: calculatedSummary || '',
                             homeScoreRuns: homeRuns,
                             homeWickets: homeWkts,
                             homeOvers: homeOvs,
@@ -946,9 +956,9 @@ export const AdminDashboardPage: React.FC = () => {
                           });
                           setShowResultModal(true);
                         }}
-                        className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-black rounded-lg text-[11px] shadow-md flex items-center gap-1"
+                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 border border-slate-700"
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Update Result & M.O.M
+                        Update Match
                       </button>
                       <button
                         onClick={() => handleDeleteMatch(m.id)}
@@ -977,9 +987,13 @@ export const AdminDashboardPage: React.FC = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-xs font-bold text-emerald-400">
-              {resultMatch.homeTeam.name} vs {resultMatch.awayTeam.name}
-            </p>
+            {/* Read-Only Team Info Header */}
+            <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-400 uppercase">Teams (Read Only)</span>
+              <span className="text-sm font-heading font-black text-amber-400">
+                {resultMatch.homeTeam.name} <span className="text-slate-500 font-normal">vs</span> {resultMatch.awayTeam.name}
+              </span>
+            </div>
 
             <form onSubmit={handleSaveMatchResult} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -1004,44 +1018,46 @@ export const AdminDashboardPage: React.FC = () => {
                     onChange={(e) => setResForm({ ...resForm, status: e.target.value })}
                     className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-bold"
                   >
+                    <option value="UPCOMING">SCHEDULED (Upcoming)</option>
                     <option value="LIVE">ONGOING (In Progress)</option>
                     <option value="COMPLETED">COMPLETED (Finished)</option>
-                    <option value="UPCOMING">UPCOMING</option>
                   </select>
                 </div>
               </div>
 
-              {/* Toss Information */}
-              <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-2">
-                <div className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                  🪙 Toss Information & Decision:
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">Toss Winner</label>
-                    <select
-                      value={resForm.tossWinnerId}
-                      onChange={(e) => setResForm({ ...resForm, tossWinnerId: e.target.value })}
-                      className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-bold"
-                    >
-                      <option value={resultMatch.homeTeamId}>{resultMatch.homeTeam.name}</option>
-                      <option value={resultMatch.awayTeamId}>{resultMatch.awayTeam.name}</option>
-                    </select>
+              {/* Toss Information (Visible ONLY when status is ONGOING / LIVE) */}
+              {resForm.status === 'LIVE' && (
+                <div className="bg-gradient-to-r from-amber-950/60 to-slate-950 p-4 rounded-2xl border border-amber-500/40 space-y-3">
+                  <div className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                    🪙 Toss Information & Decision:
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">Toss Winner</label>
+                      <select
+                        value={resForm.tossWinnerId}
+                        onChange={(e) => setResForm({ ...resForm, tossWinnerId: e.target.value })}
+                        className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-bold"
+                      >
+                        <option value={resultMatch.homeTeamId}>{resultMatch.homeTeam.name}</option>
+                        <option value={resultMatch.awayTeamId}>{resultMatch.awayTeam.name}</option>
+                      </select>
+                    </div>
 
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">Toss Decision</label>
-                    <select
-                      value={resForm.tossDecision}
-                      onChange={(e) => setResForm({ ...resForm, tossDecision: e.target.value })}
-                      className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-bold"
-                    >
-                      <option value="BAT">Elected to BAT first</option>
-                      <option value="BOWL">Elected to BOWL first</option>
-                    </select>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">Toss Decision</label>
+                      <select
+                        value={resForm.tossDecision}
+                        onChange={(e) => setResForm({ ...resForm, tossDecision: e.target.value })}
+                        className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-bold"
+                      >
+                        <option value="BAT">Elected to BAT first</option>
+                        <option value="BOWL">Elected to BOWL first</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* ONGOING vs COMPLETED Dynamic Flow */}
               {resForm.status === 'LIVE' ? (

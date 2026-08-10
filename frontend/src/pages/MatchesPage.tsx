@@ -203,20 +203,22 @@ export const MatchesPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Match Result / Man of the Match */}
-                <div className="space-y-2">
-                  {m.resultSummary && (
-                    <div className="p-2.5 bg-amber-950/60 border border-amber-800/40 rounded-xl text-center text-xs font-bold text-amber-300">
-                      🏆 {m.resultSummary}
-                    </div>
-                  )}
+                {/* Match Result / Man of the Match (Render ONLY when match is COMPLETED) */}
+                {m.status === 'COMPLETED' && (
+                  <div className="space-y-2">
+                    {m.resultSummary && (
+                      <div className="p-2.5 bg-amber-950/60 border border-amber-800/40 rounded-xl text-center text-xs font-bold text-amber-300">
+                        🏆 {m.resultSummary}
+                      </div>
+                    )}
 
-                  {m.playerOfTheMatch && (
-                    <div className="p-2 bg-emerald-950/80 border border-emerald-800/50 rounded-xl text-center text-xs font-bold text-emerald-400 flex items-center justify-center gap-1.5">
-                      <Award className="w-4 h-4 text-emerald-400" /> Man of the Match: {m.playerOfTheMatch.name}
-                    </div>
-                  )}
-                </div>
+                    {m.playerOfTheMatch && (
+                      <div className="p-2 bg-emerald-950/80 border border-emerald-800/50 rounded-xl text-center text-xs font-bold text-emerald-400 flex items-center justify-center gap-1.5">
+                        <Award className="w-4 h-4 text-emerald-400" /> Man of the Match: {m.playerOfTheMatch.name}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between pt-2 text-xs border-t border-slate-800">
                   <span className="text-slate-400">{m.venue || 'Stadium'}</span>
