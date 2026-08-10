@@ -247,11 +247,14 @@ export const AdminScorerPage: React.FC = () => {
     setNonStrikerId(sId);
   };
 
-  const handleRecordBall = (
+    const handleRecordBall = (
     overrideRuns?: number,
     overrideExtra?: 'NONE' | 'WIDE' | 'NO_BALL' | 'BYE' | 'LEG_BYE',
     overrideWicket?: boolean
   ) => {
+    if (match.status === 'COMPLETED') {
+      return alert('This match is completed and locked. Further scoring is disabled.');
+    }
     if (!activeInnings) return alert('No active innings available!');
     setPostingBall(true);
 
@@ -331,19 +334,17 @@ export const AdminScorerPage: React.FC = () => {
       innings: updatedInningsList,
     };
 
-    // Auto strike swap logic:
+    // Auto strike swap logic
     let swapCount = 0;
-    // 1. Odd runs swap (1, 3, 5 runs)
-    if (runs % 2 !== 0) {
-      swapCount++;
-    }
-    // 2. Over end swap (6th legal ball of over)
-    if (isLegalBall && ballsInOver === 0 && overNum > 0) {
-      swapCount++;
-    }
+    if (runs % 2 !== 0) swapCount++;
+    if (isLegalBall && ballsInOver === 0 && overNum > 0) swapCount++;
 
     if (swapCount % 2 !== 0) {
-      handleSwapStrikers(effectiveStrikerId, effectiveNonStrikerId);
+      setStrikerId(effectiveNonStrikerId);
+      setNonStrikerId(effectiveStrikerId);
+    } else {
+      setStrikerId(effectiveStrikerId);
+      setNonStrikerId(effectiveNonStrikerId);
     }
 
     // Check if Over Complete (6 legal balls bowled)
@@ -543,6 +544,21 @@ export const AdminScorerPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Completed Match Locked Banner */}
+      {match.status === 'COMPLETED' && (
+        <div className="bg-gradient-to-r from-red-950 via-slate-900 to-red-950 border border-red-800/80 rounded-3xl p-6 text-center space-y-2 shadow-2xl">
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-red-900/80 border border-red-500/50 text-red-300 text-xs font-black uppercase tracking-wider">
+            🔒 MATCH COMPLETED & LOCKED
+          </div>
+          <h2 className="text-xl font-heading font-black text-amber-400">
+            🏆 {match.resultSummary || 'Match Finished'}
+          </h2>
+          <p className="text-xs text-slate-300">
+            Scoring controls are locked to preserve official match records.
+          </p>
+        </div>
+      )}
 
       {/* Toss Status & Control Bar */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
