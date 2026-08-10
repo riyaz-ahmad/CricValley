@@ -259,19 +259,21 @@ export const LiveMatchPage: React.FC = () => {
         </div>
 
         {/* CURRENT LIVE BATTERS & BOWLER SCORECARD PANEL */}
-        {match.status === 'LIVE' && activeInnings && (
+        {(match.status === 'LIVE' || match.status === 'COMPLETED' || match.status === 'UPCOMING') && (
           <div className="space-y-6 bg-slate-950 border border-slate-800 p-5 rounded-3xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-2 text-xs">
               <span className="font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Zap className="w-4 h-4" /> Live Scorecard Details ({activeInnings.battingTeam?.name || 'Batting Team'})
+                <Zap className="w-4 h-4" /> Batter & Bowler Scorecard ({battingTeam?.name || 'Batting Team'})
               </span>
-              <span className="font-mono text-slate-400 font-semibold">CRR: <strong className="text-white">{currentRunRate}</strong></span>
+              {match.status === 'LIVE' && (
+                <span className="font-mono text-slate-400 font-semibold">CRR: <strong className="text-white">{currentRunRate}</strong></span>
+              )}
             </div>
 
             {/* Current Batters Table */}
             <div>
               <div className="text-[11px] font-bold text-slate-400 uppercase mb-2 flex items-center justify-between">
-                <span>Innings Batting Performance:</span>
+                <span>Batting Performance:</span>
                 <span className="text-emerald-400 font-mono">* Facing Striker</span>
               </div>
               <div className="overflow-x-auto">
@@ -447,8 +449,8 @@ export const LiveMatchPage: React.FC = () => {
           </div>
         )}
 
-        {/* Result Summary */}
-        {match.resultSummary && (
+        {/* Result Summary (Render ONLY when match is COMPLETED) */}
+        {match.status === 'COMPLETED' && match.resultSummary && (
           <div className="bg-gradient-to-r from-amber-950 to-orange-950 border border-amber-800/60 p-5 rounded-2xl text-center space-y-1 shadow-lg">
             <div className="text-xs text-amber-400 uppercase font-bold tracking-wider">Official Match Result</div>
             <div className="text-xl font-heading font-black text-amber-300">🏆 {match.resultSummary}</div>
