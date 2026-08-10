@@ -78,7 +78,10 @@ export const AdminScorerPage: React.FC = () => {
 
       setMatch(foundMatch);
 
-      const activeInn = foundMatch.innings.find((i) => !i.isCompleted) || foundMatch.innings[0];
+      const inn1 = foundMatch.innings?.find((i) => i.inningNumber === 1);
+      const inn2 = foundMatch.innings?.find((i) => i.inningNumber === 2);
+      const isInn2Active = inn2 && (inn1?.isCompleted || (inn2.balls && inn2.balls.length > 0) || inn2.totalRuns > 0 || inn2.overs > 0);
+      const activeInn = (isInn2Active ? inn2 : inn1) || inn1;
       if (activeInn) {
         const allStoragePlayers = storage.getPlayers();
         const teamBatPlayers = (activeInn.battingTeamId === foundMatch.homeTeamId ? foundMatch.homeTeam.players : foundMatch.awayTeam.players) || [];

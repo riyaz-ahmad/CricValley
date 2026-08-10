@@ -85,7 +85,8 @@ export const LiveMatchPage: React.FC = () => {
 
   const inn1 = match.innings?.find((i) => i.inningNumber === 1);
   const inn2 = match.innings?.find((i) => i.inningNumber === 2);
-  const activeInnings = (inn2 && !inn2.isCompleted ? inn2 : inn1) || inn1;
+  const isInn2Active = inn2 && (inn1?.isCompleted || (inn2.balls && inn2.balls.length > 0) || inn2.totalRuns > 0 || inn2.overs > 0);
+  const activeInnings = (isInn2Active ? inn2 : inn1) || inn1;
   const battingTeam = activeInnings?.battingTeamId === match.homeTeamId ? match.homeTeam : match.awayTeam;
   const bowlingTeam = activeInnings?.battingTeamId === match.homeTeamId ? match.awayTeam : match.homeTeam;
 
@@ -107,10 +108,13 @@ export const LiveMatchPage: React.FC = () => {
   // Calculate batter & bowler stats dynamically from activeInnings.balls
   const playerStatsMap: Record<string, { runs: number; balls: number; fours: number; sixes: number }> = {};
   const bowlerStatsMap: Record<string, { balls: number; runsConceded: number; wickets: number }> = {};
+  const activeBattersSet = new Set<string>();
+  const activeBowlersSet = new Set<string>();
 
   if (activeInnings && activeInnings.balls) {
     activeInnings.balls.forEach((b) => {
       if (b.strikerId) {
+        activeBattersSet.add(b.strikerId);
         if (!playerStatsMap[b.strikerId]) playerStatsMap[b.strikerId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
         if (b.extraType !== 'WIDE' && b.extraType !== 'BYE' && b.extraType !== 'LEG_BYE') {
           playerStatsMap[b.strikerId].runs += b.runs;
@@ -119,7 +123,12 @@ export const LiveMatchPage: React.FC = () => {
         if (b.runs === 4) playerStatsMap[b.strikerId].fours += 1;
         if (b.runs === 6) playerStatsMap[b.strikerId].sixes += 1;
       }
+      if (b.nonStrikerId) {
+        activeBattersSet.add(b.nonStrikerId);
+        if (!playerStatsMap[b.nonStrikerId]) playerStatsMap[b.nonStrikerId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
+      }
       if (b.bowlerId) {
+        activeBowlersSet.add(b.bowlerId);
         if (!bowlerStatsMap[b.bowlerId]) bowlerStatsMap[b.bowlerId] = { balls: 0, runsConceded: 0, wickets: 0 };
         const isLegal = b.extraType !== 'WIDE' && b.extraType !== 'NO_BALL';
         if (isLegal) bowlerStatsMap[b.bowlerId].balls += 1;
@@ -131,6 +140,9 @@ export const LiveMatchPage: React.FC = () => {
       }
     });
   }
+
+  const activeBattersList: string[] = Array.from(activeBattersSet);
+  const activeBowlersList: string[] = Array.from(activeBowlersSet);
 
   const lastBall = activeInnings?.balls && activeInnings.balls.length > 0 ? activeInnings.balls[activeInnings.balls.length - 1] : null;
   const strikerId = lastBall?.strikerId;
@@ -243,17 +255,20 @@ export const LiveMatchPage: React.FC = () => {
 
         {/* CURRENT LIVE BATTERS & BOWLER SCORECARD PANEL */}
         {match.status === 'LIVE' && activeInnings && (
-          <div className="space-y-4 bg-slate-950 border border-slate-800 p-5 rounded-3xl">
+          <div className="space-y-6 bg-slate-950 border border-slate-800 p-5 rounded-3xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-2 text-xs">
               <span className="font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Zap className="w-4 h-4" /> Live Scorecard Details
+                <Zap className="w-4 h-4" /> Live Scorecard Details ({activeInnings.battingTeam?.name || 'Batting Team'})
               </span>
               <span className="font-mono text-slate-400 font-semibold">CRR: <strong className="text-white">{currentRunRate}</strong></span>
             </div>
 
             {/* Current Batters Table */}
             <div>
-              <div className="text-[11px] font-bold text-slate-400 uppercase mb-2">Batting Currently:</div>
+              <div className="text-[11px] font-bold text-slate-400 uppercase mb-2 flex items-center justify-between">
+                <span>Innings Batting Performance:</span>
+                <span className="text-emerald-400 font-mono">* Facing Striker</span>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
@@ -266,67 +281,134 @@ export const LiveMatchPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-900 font-medium">
-                    {/* Striker */}
-                    {strikerPlayer && (
-                      <tr className="text-white">
-                        <td className="py-2.5 px-2 font-bold text-emerald-400 flex items-center gap-1">
-                          {strikerPlayer.name} <span className="text-amber-400 font-black">*</span>
-                        </td>
-                        <td className="py-2.5 px-2 text-center font-mono font-bold text-white">
-                          {strikerStats?.runs} ({strikerStats?.balls})
-                        </td>
-                        <td className="py-2.5 px-2 text-center font-mono text-slate-300">{strikerStats?.fours}</td>
-                        <td className="py-2.5 px-2 text-center font-mono text-amber-400 font-bold">{strikerStats?.sixes}</td>
-                        <td className="py-2.5 px-2 text-right font-mono text-cyan-400">
-                          {strikerStats && strikerStats.balls > 0 ? ((strikerStats.runs / strikerStats.balls) * 100).toFixed(1) : '0.0'}
-                        </td>
-                      </tr>
-                    )}
-                    {/* Non-Striker */}
-                    {nonStrikerPlayer && (
-                      <tr className="text-slate-300">
-                        <td className="py-2.5 px-2 font-bold text-slate-200">
-                          {nonStrikerPlayer.name}
-                        </td>
-                        <td className="py-2.5 px-2 text-center font-mono font-bold text-white">
-                          {nonStrikerStats?.runs} ({nonStrikerStats?.balls})
-                        </td>
-                        <td className="py-2.5 px-2 text-center font-mono text-slate-300">{nonStrikerStats?.fours}</td>
-                        <td className="py-2.5 px-2 text-center font-mono text-amber-400 font-bold">{nonStrikerStats?.sixes}</td>
-                        <td className="py-2.5 px-2 text-right font-mono text-cyan-400">
-                          {nonStrikerStats && nonStrikerStats.balls > 0 ? ((nonStrikerStats.runs / nonStrikerStats.balls) * 100).toFixed(1) : '0.0'}
-                        </td>
-                      </tr>
-                    )}
-                    {!strikerPlayer && !nonStrikerPlayer && (
-                      <tr>
-                        <td colSpan={5} className="py-3 text-center text-slate-500 italic">No batter statistics recorded yet</td>
-                      </tr>
+                    {activeBattersList.length > 0 ? (
+                      activeBattersList.map((bId) => {
+                        const p = getPlayerData(bId, undefined, `Player (${bId.slice(0, 4)})`);
+                        const s = playerStatsMap[bId] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
+                        const isStriker = bId === strikerId;
+                        const isNonStriker = bId === nonStrikerId;
+                        const isFacing = isStriker || isNonStriker;
+
+                        return (
+                          <tr key={bId} className={isStriker ? 'text-white bg-emerald-950/20 font-bold' : 'text-slate-300'}>
+                            <td className="py-2.5 px-2 font-bold text-white flex items-center gap-1">
+                              <span className={isStriker ? 'text-emerald-400 font-extrabold' : ''}>{p.name}</span>
+                              {isStriker && <span className="text-amber-400 font-black">*</span>}
+                              {!isFacing && <span className="text-[10px] text-slate-500 font-normal ml-1">(out)</span>}
+                            </td>
+                            <td className="py-2.5 px-2 text-center font-mono font-bold text-white">
+                              {s.runs} ({s.balls})
+                            </td>
+                            <td className="py-2.5 px-2 text-center font-mono text-slate-300">{s.fours}</td>
+                            <td className="py-2.5 px-2 text-center font-mono text-amber-400 font-bold">{s.sixes}</td>
+                            <td className="py-2.5 px-2 text-right font-mono text-cyan-400">
+                              {s.balls > 0 ? ((s.runs / s.balls) * 100).toFixed(1) : '0.0'}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <>
+                        {strikerPlayer && (
+                          <tr className="text-white">
+                            <td className="py-2.5 px-2 font-bold text-emerald-400 flex items-center gap-1">
+                              {strikerPlayer.name} <span className="text-amber-400 font-black">*</span>
+                            </td>
+                            <td className="py-2.5 px-2 text-center font-mono font-bold text-white">
+                              {strikerStats?.runs || 0} ({strikerStats?.balls || 0})
+                            </td>
+                            <td className="py-2.5 px-2 text-center font-mono text-slate-300">{strikerStats?.fours || 0}</td>
+                            <td className="py-2.5 px-2 text-center font-mono text-amber-400 font-bold">{strikerStats?.sixes || 0}</td>
+                            <td className="py-2.5 px-2 text-right font-mono text-cyan-400">
+                              {strikerStats && strikerStats.balls > 0 ? ((strikerStats.runs / strikerStats.balls) * 100).toFixed(1) : '0.0'}
+                            </td>
+                          </tr>
+                        )}
+                        {nonStrikerPlayer && (
+                          <tr className="text-slate-300">
+                            <td className="py-2.5 px-2 font-bold text-slate-200">
+                              {nonStrikerPlayer.name}
+                            </td>
+                            <td className="py-2.5 px-2 text-center font-mono font-bold text-white">
+                              {nonStrikerStats?.runs || 0} ({nonStrikerStats?.balls || 0})
+                            </td>
+                            <td className="py-2.5 px-2 text-center font-mono text-slate-300">{nonStrikerStats?.fours || 0}</td>
+                            <td className="py-2.5 px-2 text-center font-mono text-amber-400 font-bold">{nonStrikerStats?.sixes || 0}</td>
+                            <td className="py-2.5 px-2 text-right font-mono text-cyan-400">
+                              {nonStrikerStats && nonStrikerStats.balls > 0 ? ((nonStrikerStats.runs / nonStrikerStats.balls) * 100).toFixed(1) : '0.0'}
+                            </td>
+                          </tr>
+                        )}
+                      </>
                     )}
                   </tbody>
                 </table>
               </div>
             </div>
 
-            {/* Current Active Bowler */}
-            {activeBowlerPlayer && (
-              <div className="pt-2 border-t border-slate-900">
-                <div className="text-[11px] font-bold text-slate-400 uppercase mb-2">Bowling Currently:</div>
-                <div className="p-3 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-between text-xs font-bold">
-                  <div className="text-white flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-                    <span>{activeBowlerPlayer.name}</span>
+            {/* Innings Bowlers Table */}
+            <div>
+              <div className="text-[11px] font-bold text-slate-400 uppercase mb-2">Bowling Figures:</div>
+              <div className="space-y-2">
+                {activeBowlersList.length > 0 ? (
+                  activeBowlersList.map((bId) => {
+                    const p = getPlayerData(bId, undefined, `Bowler (${bId.slice(0, 4)})`);
+                    const bs = bowlerStatsMap[bId] || { balls: 0, runsConceded: 0, wickets: 0 };
+                    const isActive = bId === bowlerId;
+
+                    return (
+                      <div key={bId} className={`p-3 bg-slate-900 border ${isActive ? 'border-cyan-500/50' : 'border-slate-800'} rounded-2xl flex items-center justify-between`}>
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full ${isActive ? 'bg-cyan-500/20 border border-cyan-400 text-cyan-400' : 'bg-slate-800 text-slate-400'} font-bold flex items-center justify-center text-xs`}>
+                            ⚾
+                          </div>
+                          <div>
+                            <div className="font-extrabold text-white text-xs flex items-center gap-1.5">
+                              {p.name} {isActive && <span className="text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-700/50 px-1.5 py-0.5 rounded uppercase font-mono">Bowling Now</span>}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              Econ: <strong className="text-slate-200">{bs.balls > 0 ? (bs.runsConceded / (bs.balls / 6)).toFixed(2) : '0.00'}</strong>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right font-mono">
+                          <div className="text-base font-black text-cyan-400">
+                            {Math.floor(bs.balls / 6)}.{bs.balls % 6} <span className="text-xs text-slate-400 font-normal">ov</span>
+                          </div>
+                          <div className="text-xs text-slate-300 font-bold">
+                            {bs.runsConceded} Runs • <strong className="text-red-400">{bs.wickets} Wkts</strong>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : activeBowlerPlayer ? (
+                  <div className="p-3 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 font-bold flex items-center justify-center text-xs">
+                        ⚾
+                      </div>
+                      <div>
+                        <div className="font-extrabold text-white text-xs">{activeBowlerPlayer.name}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          Econ: <strong className="text-slate-200">{activeBowlerStats && activeBowlerStats.balls > 0 ? (activeBowlerStats.runsConceded / (activeBowlerStats.balls / 6)).toFixed(2) : '0.00'}</strong>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right font-mono">
+                      <div className="text-base font-black text-cyan-400">
+                        {activeBowlerStats ? `${Math.floor(activeBowlerStats.balls / 6)}.${activeBowlerStats.balls % 6}` : '0.0'} <span className="text-xs text-slate-400 font-normal">ov</span>
+                      </div>
+                      <div className="text-xs text-slate-300 font-bold">
+                        {activeBowlerStats?.runsConceded || 0} Runs • <strong className="text-red-400">{activeBowlerStats?.wickets || 0} Wkts</strong>
+                      </div>
+                    </div>
                   </div>
-                  <div className="font-mono text-cyan-300 flex items-center gap-3">
-                    <span>
-                      {activeBowlerStats ? `${Math.floor(activeBowlerStats.balls / 6)}.${activeBowlerStats.balls % 6}` : '0.0'} Ov
-                    </span>
-                    <span>{activeBowlerStats?.runsConceded || 0} Runs</span>
-                    <span className="text-red-400 font-black">{activeBowlerStats?.wickets || 0} Wkts</span>
-                  </div>
-                </div>
+                ) : (
+                  <div className="p-3 text-center text-slate-500 text-xs italic">No bowler statistics recorded yet</div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         )}
 

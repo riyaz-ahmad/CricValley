@@ -176,7 +176,8 @@ export const AdminStreamerPage: React.FC = () => {
 
   const inn1 = match.innings?.find((i) => i.inningNumber === 1);
   const inn2 = match.innings?.find((i) => i.inningNumber === 2);
-  const activeInnings = (inn2 && !inn2.isCompleted ? inn2 : inn1) || inn1;
+  const isInn2Active = inn2 && (inn1?.isCompleted || (inn2.balls && inn2.balls.length > 0) || inn2.totalRuns > 0 || inn2.overs > 0);
+  const activeInnings = (isInn2Active ? inn2 : inn1) || inn1;
   const battingTeam = activeInnings?.battingTeamId === match.homeTeamId ? match.homeTeam : match.awayTeam;
   const bowlingTeam = activeInnings?.battingTeamId === match.homeTeamId ? match.awayTeam : match.homeTeam;
 
