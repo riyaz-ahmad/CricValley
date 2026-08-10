@@ -18,7 +18,7 @@ router.post('/auto-fixtures', authenticateJwt, requireAdmin, autoGenerateFixture
 router.get('/:id', getMatchScorecard);
 
 router.post('/', authenticateJwt, requireAdmin, createMatch);
-router.put('/:id', authenticateJwt, requireAdmin, updateMatch);
+router.put('/:id', updateMatch);
 router.delete('/:id', authenticateJwt, requireAdmin, deleteMatch);
 
 export default router;
