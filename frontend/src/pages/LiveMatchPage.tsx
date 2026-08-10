@@ -83,10 +83,26 @@ export const LiveMatchPage: React.FC = () => {
     return <div className="py-20 text-center text-slate-400 animate-pulse font-bold">Loading live match scoreboard...</div>;
   }
 
-  const allPlayers = storage.getPlayers();
   const inn1 = match.innings?.find((i) => i.inningNumber === 1);
   const inn2 = match.innings?.find((i) => i.inningNumber === 2);
   const activeInnings = (inn2 && !inn2.isCompleted ? inn2 : inn1) || inn1;
+  const battingTeam = activeInnings?.battingTeamId === match.homeTeamId ? match.homeTeam : match.awayTeam;
+  const bowlingTeam = activeInnings?.battingTeamId === match.homeTeamId ? match.awayTeam : match.homeTeam;
+
+  const homePlayers = match.homeTeam?.players || [];
+  const awayPlayers = match.awayTeam?.players || [];
+  const storagePlayers = storage.getPlayers();
+
+  const allPlayersMap = new Map<string, Player>();
+  [...homePlayers, ...awayPlayers, ...storagePlayers].forEach((p) => {
+    if (p && p.id) allPlayersMap.set(p.id, p);
+  });
+
+  const getPlayerData = (playerId?: string, ballPlayerObj?: any, defaultName = 'Player') => {
+    if (playerId && allPlayersMap.has(playerId)) return allPlayersMap.get(playerId)!;
+    if (ballPlayerObj && ballPlayerObj.name) return ballPlayerObj;
+    return { name: defaultName } as Player;
+  };
 
   // Calculate batter & bowler stats dynamically from activeInnings.balls
   const playerStatsMap: Record<string, { runs: number; balls: number; fours: number; sixes: number }> = {};
@@ -121,13 +137,13 @@ export const LiveMatchPage: React.FC = () => {
   const nonStrikerId = lastBall?.nonStrikerId;
   const bowlerId = lastBall?.bowlerId;
 
-  const strikerPlayer = allPlayers.find((p) => p.id === strikerId) || lastBall?.striker;
-  const nonStrikerPlayer = allPlayers.find((p) => p.id === nonStrikerId);
-  const activeBowlerPlayer = allPlayers.find((p) => p.id === bowlerId) || lastBall?.bowler;
+  const strikerPlayer = getPlayerData(strikerId, lastBall?.striker, (battingTeam.players && battingTeam.players[0]?.name) || 'Striker');
+  const nonStrikerPlayer = getPlayerData(nonStrikerId, undefined, (battingTeam.players && battingTeam.players[1]?.name) || 'Non-Striker');
+  const activeBowlerPlayer = getPlayerData(bowlerId, lastBall?.bowler, (bowlingTeam.players && bowlingTeam.players[0]?.name) || 'Bowler');
 
-  const strikerStats = strikerId ? playerStatsMap[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : null;
-  const nonStrikerStats = nonStrikerId ? playerStatsMap[nonStrikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : null;
-  const activeBowlerStats = bowlerId ? bowlerStatsMap[bowlerId] || { balls: 0, runsConceded: 0, wickets: 0 } : null;
+  const strikerStats = strikerId ? playerStatsMap[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : (battingTeam.players && battingTeam.players[0]?.id ? playerStatsMap[battingTeam.players[0].id] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : null);
+  const nonStrikerStats = nonStrikerId ? playerStatsMap[nonStrikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : (battingTeam.players && battingTeam.players[1]?.id ? playerStatsMap[battingTeam.players[1].id] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : null);
+  const activeBowlerStats = bowlerId ? bowlerStatsMap[bowlerId] || { balls: 0, runsConceded: 0, wickets: 0 } : (bowlingTeam.players && bowlingTeam.players[0]?.id ? bowlerStatsMap[bowlingTeam.players[0].id] || { balls: 0, runsConceded: 0, wickets: 0 } : null);
 
   // Run rate calculations
   const totalOvers = activeInnings ? activeInnings.overs : 0;

@@ -272,17 +272,24 @@ export const AdminScorerPage: React.FC = () => {
     let newWickets = activeInnings.wickets + (currentIsWicket ? 1 : 0);
     let newTotalRuns = activeInnings.totalRuns + totalBallRuns;
 
-    const striker = allPlayers.find((p) => p.id === strikerId);
-    const bowler = allPlayers.find((p) => p.id === bowlerId);
+    const batTeamPlayers = (activeInnings.battingTeamId === match.homeTeamId ? match.homeTeam.players : match.awayTeam.players) || [];
+    const bowlTeamPlayers = (activeInnings.bowlingTeamId === match.homeTeamId ? match.homeTeam.players : match.awayTeam.players) || [];
+
+    const effectiveStrikerId = strikerId || batTeamPlayers[0]?.id || 'striker-1';
+    const effectiveNonStrikerId = nonStrikerId || batTeamPlayers[1]?.id || batTeamPlayers[0]?.id || 'striker-2';
+    const effectiveBowlerId = bowlerId || bowlTeamPlayers[0]?.id || 'bowler-1';
+
+    const striker = allPlayers.find((p) => p.id === effectiveStrikerId) || batTeamPlayers.find((p) => p.id === effectiveStrikerId);
+    const bowler = allPlayers.find((p) => p.id === effectiveBowlerId) || bowlTeamPlayers.find((p) => p.id === effectiveBowlerId);
 
     const ballEvent = {
       id: `ball-${Date.now()}`,
       inningsId: activeInnings.id,
       overNumber: overNum,
       ballNumberInOver: ballsInOver,
-      bowlerId,
-      strikerId,
-      nonStrikerId,
+      bowlerId: effectiveBowlerId,
+      strikerId: effectiveStrikerId,
+      nonStrikerId: effectiveNonStrikerId,
       runs,
       extraType: currentExtraType,
       extraRuns: wide + noBall,

@@ -105,7 +105,21 @@ export const BroadcastOverlayPage: React.FC = () => {
     }
   }, [lastBall, lastProcessedBallId]);
 
-  const allPlayers = storage.getPlayers();
+  const homePlayers = match.homeTeam?.players || [];
+  const awayPlayers = match.awayTeam?.players || [];
+  const storagePlayers = storage.getPlayers();
+
+  const allPlayersMap = new Map<string, any>();
+  [...homePlayers, ...awayPlayers, ...storagePlayers].forEach((p) => {
+    if (p && p.id) allPlayersMap.set(p.id, p);
+  });
+
+  const getPlayerData = (playerId?: string, ballPlayerObj?: any, defaultName = 'Player') => {
+    if (playerId && allPlayersMap.has(playerId)) return allPlayersMap.get(playerId)!;
+    if (ballPlayerObj && ballPlayerObj.name) return ballPlayerObj;
+    return { name: defaultName };
+  };
+
   const playerStatsMap: Record<string, { runs: number; balls: number; fours: number; sixes: number }> = {};
   const bowlerStatsMap: Record<string, { balls: number; runsConceded: number; wickets: number }> = {};
 
@@ -137,9 +151,9 @@ export const BroadcastOverlayPage: React.FC = () => {
   const nonStrikerId = lastBall?.nonStrikerId;
   const bowlerId = lastBall?.bowlerId;
 
-  const strikerPlayer = allPlayers.find((p) => p.id === strikerId) || lastBall?.striker || { name: 'Striker' };
-  const nonStrikerPlayer = allPlayers.find((p) => p.id === nonStrikerId) || { name: 'Non-Striker' };
-  const activeBowlerPlayer = allPlayers.find((p) => p.id === bowlerId) || lastBall?.bowler || { name: 'Bowler' };
+  const strikerPlayer = getPlayerData(strikerId, lastBall?.striker, (battingTeam.players && battingTeam.players[0]?.name) || 'Striker');
+  const nonStrikerPlayer = getPlayerData(nonStrikerId, undefined, (battingTeam.players && battingTeam.players[1]?.name) || 'Non-Striker');
+  const activeBowlerPlayer = getPlayerData(bowlerId, lastBall?.bowler, (bowlingTeam.players && bowlingTeam.players[0]?.name) || 'Bowler');
 
   const strikerStats = strikerId ? playerStatsMap[strikerId] || { runs: 0, balls: 0 } : { runs: 0, balls: 0 };
   const nonStrikerStats = nonStrikerId ? playerStatsMap[nonStrikerId] || { runs: 0, balls: 0 } : { runs: 0, balls: 0 };
