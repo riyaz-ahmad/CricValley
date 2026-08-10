@@ -510,9 +510,9 @@ export const AdminScorerPage: React.FC = () => {
     });
   }
 
-  const currentStrikerPlayer = allPlayers.find((p) => p.id === (strikerId || batTeamPlayers[0]?.id)) || batTeamPlayers[0];
-  const currentNonStrikerPlayer = allPlayers.find((p) => p.id === (nonStrikerId || batTeamPlayers[1]?.id)) || batTeamPlayers[1];
-  const currentBowlerPlayer = allPlayers.find((p) => p.id === (bowlerId || bowlTeamPlayers[0]?.id)) || bowlTeamPlayers[0];
+  const currentStrikerPlayer = strikerId ? allPlayers.find((p) => p.id === strikerId) || batTeamPlayers.find((p) => p.id === strikerId) : null;
+  const currentNonStrikerPlayer = nonStrikerId ? allPlayers.find((p) => p.id === nonStrikerId) || batTeamPlayers.find((p) => p.id === nonStrikerId) : null;
+  const currentBowlerPlayer = bowlerId ? allPlayers.find((p) => p.id === bowlerId) || bowlTeamPlayers.find((p) => p.id === bowlerId) : null;
 
   const currentStrikerStats = currentStrikerPlayer ? playerStatsMap[currentStrikerPlayer.id] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : { runs: 0, balls: 0, fours: 0, sixes: 0 };
   const currentNonStrikerStats = currentNonStrikerPlayer ? playerStatsMap[currentNonStrikerPlayer.id] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : { runs: 0, balls: 0, fours: 0, sixes: 0 };
@@ -629,7 +629,14 @@ export const AdminScorerPage: React.FC = () => {
               <label className="block text-[11px] font-bold text-emerald-400 uppercase mb-1">Striker (Facing)</label>
               <select
                 value={strikerId}
-                onChange={(e) => setStrikerId(e.target.value)}
+                onChange={(e) => {
+                  const sId = e.target.value;
+                  setStrikerId(sId);
+                  if (activeInnings) {
+                    const updatedInningsList = (match.innings || []).map((inn) => (inn.id === activeInnings.id ? { ...inn, currentStrikerId: sId } : inn));
+                    saveUpdatedMatch({ ...match, innings: updatedInningsList });
+                  }
+                }}
                 className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-bold"
               >
                 <option value="">-- Select Striker --</option>
@@ -645,7 +652,14 @@ export const AdminScorerPage: React.FC = () => {
               <div className="flex gap-2">
                 <select
                   value={nonStrikerId}
-                  onChange={(e) => setNonStrikerId(e.target.value)}
+                  onChange={(e) => {
+                    const nsId = e.target.value;
+                    setNonStrikerId(nsId);
+                    if (activeInnings) {
+                      const updatedInningsList = (match.innings || []).map((inn) => (inn.id === activeInnings.id ? { ...inn, currentNonStrikerId: nsId } : inn));
+                      saveUpdatedMatch({ ...match, innings: updatedInningsList });
+                    }
+                  }}
                   className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-bold"
                 >
                   <option value="">-- Select Non-Striker --</option>
@@ -669,7 +683,14 @@ export const AdminScorerPage: React.FC = () => {
               <label className="block text-[11px] font-bold text-cyan-400 uppercase mb-1">Active Bowler</label>
               <select
                 value={bowlerId}
-                onChange={(e) => setBowlerId(e.target.value)}
+                onChange={(e) => {
+                  const bwId = e.target.value;
+                  setBowlerId(bwId);
+                  if (activeInnings) {
+                    const updatedInningsList = (match.innings || []).map((inn) => (inn.id === activeInnings.id ? { ...inn, currentBowlerId: bwId } : inn));
+                    saveUpdatedMatch({ ...match, innings: updatedInningsList });
+                  }
+                }}
                 className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-bold"
               >
                 <option value="">-- Select Bowler --</option>

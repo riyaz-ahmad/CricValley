@@ -125,43 +125,48 @@ export const BroadcastOverlayPage: React.FC = () => {
   const bowlerStatsMap: Record<string, { balls: number; runsConceded: number; wickets: number }> = {};
 
   if (activeInnings && activeInnings.balls) {
-    const defaultStrikerId = (battingTeam.players && battingTeam.players[0]?.id) || 'player-1';
-    const defaultNonStrikerId = (battingTeam.players && battingTeam.players[1]?.id) || (battingTeam.players && battingTeam.players[0]?.id) || 'player-2';
-    const defaultBowlerId = (bowlingTeam.players && bowlingTeam.players[0]?.id) || 'bowler-1';
-
     activeInnings.balls.forEach((b) => {
-      const sId = b.strikerId || defaultStrikerId;
-      const nsId = b.nonStrikerId || defaultNonStrikerId;
-      const bwId = b.bowlerId || defaultBowlerId;
+      if (b.striker && b.striker.id) allPlayersMap.set(b.striker.id, b.striker);
+      if (b.bowler && b.bowler.id) allPlayersMap.set(b.bowler.id, b.bowler);
 
-      if (!playerStatsMap[sId]) playerStatsMap[sId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
-      if (b.extraType !== 'WIDE' && b.extraType !== 'BYE' && b.extraType !== 'LEG_BYE') {
-        playerStatsMap[sId].runs += b.runs;
+      const sId = b.strikerId;
+      const nsId = b.nonStrikerId;
+      const bwId = b.bowlerId;
+
+      if (sId) {
+        if (!playerStatsMap[sId]) playerStatsMap[sId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
+        if (b.extraType !== 'WIDE' && b.extraType !== 'BYE' && b.extraType !== 'LEG_BYE') {
+          playerStatsMap[sId].runs += b.runs;
+        }
+        if (b.extraType !== 'WIDE') playerStatsMap[sId].balls += 1;
+        if (b.runs === 4) playerStatsMap[sId].fours += 1;
+        if (b.runs === 6) playerStatsMap[sId].sixes += 1;
       }
-      if (b.extraType !== 'WIDE') playerStatsMap[sId].balls += 1;
-      if (b.runs === 4) playerStatsMap[sId].fours += 1;
-      if (b.runs === 6) playerStatsMap[sId].sixes += 1;
 
-      if (!playerStatsMap[nsId]) playerStatsMap[nsId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
+      if (nsId) {
+        if (!playerStatsMap[nsId]) playerStatsMap[nsId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
+      }
 
-      if (!bowlerStatsMap[bwId]) bowlerStatsMap[bwId] = { balls: 0, runsConceded: 0, wickets: 0 };
-      const isLegal = b.extraType !== 'WIDE' && b.extraType !== 'NO_BALL';
-      if (isLegal) bowlerStatsMap[bwId].balls += 1;
-      let wide = b.extraType === 'WIDE' ? (1 + b.runs) : 0;
-      let noBall = b.extraType === 'NO_BALL' ? (1 + b.runs) : 0;
-      let runsOnBowler = (b.extraType === 'BYE' || b.extraType === 'LEG_BYE') ? 0 : b.runs;
-      bowlerStatsMap[bwId].runsConceded += runsOnBowler + wide + noBall;
-      if (b.isWicket && b.wicketType !== 'RUN_OUT') bowlerStatsMap[bwId].wickets += 1;
+      if (bwId) {
+        if (!bowlerStatsMap[bwId]) bowlerStatsMap[bwId] = { balls: 0, runsConceded: 0, wickets: 0 };
+        const isLegal = b.extraType !== 'WIDE' && b.extraType !== 'NO_BALL';
+        if (isLegal) bowlerStatsMap[bwId].balls += 1;
+        let wide = b.extraType === 'WIDE' ? (1 + b.runs) : 0;
+        let noBall = b.extraType === 'NO_BALL' ? (1 + b.runs) : 0;
+        let runsOnBowler = (b.extraType === 'BYE' || b.extraType === 'LEG_BYE') ? 0 : b.runs;
+        bowlerStatsMap[bwId].runsConceded += runsOnBowler + wide + noBall;
+        if (b.isWicket && b.wicketType !== 'RUN_OUT') bowlerStatsMap[bwId].wickets += 1;
+      }
     });
   }
 
-  const strikerId = lastBall?.strikerId || (battingTeam.players && battingTeam.players[0]?.id) || 'player-1';
-  const nonStrikerId = lastBall?.nonStrikerId || (battingTeam.players && battingTeam.players[1]?.id) || 'player-2';
-  const bowlerId = lastBall?.bowlerId || (bowlingTeam.players && bowlingTeam.players[0]?.id) || 'bowler-1';
+  const strikerId = activeInnings?.currentStrikerId || lastBall?.strikerId || '';
+  const nonStrikerId = activeInnings?.currentNonStrikerId || lastBall?.nonStrikerId || '';
+  const bowlerId = activeInnings?.currentBowlerId || lastBall?.bowlerId || '';
 
-  const strikerPlayer = getPlayerData(strikerId, lastBall?.striker, (battingTeam.players && battingTeam.players[0]?.name) || 'Striker');
-  const nonStrikerPlayer = getPlayerData(nonStrikerId, undefined, (battingTeam.players && battingTeam.players[1]?.name) || 'Non-Striker');
-  const activeBowlerPlayer = getPlayerData(bowlerId, lastBall?.bowler, (bowlingTeam.players && bowlingTeam.players[0]?.name) || 'Bowler');
+  const strikerPlayer = strikerId ? getPlayerData(strikerId, lastBall?.striker, undefined) : null;
+  const nonStrikerPlayer = nonStrikerId ? getPlayerData(nonStrikerId, undefined, undefined) : null;
+  const activeBowlerPlayer = bowlerId ? getPlayerData(bowlerId, lastBall?.bowler, undefined) : null;
 
   const strikerStats = strikerId ? playerStatsMap[strikerId] || { runs: 0, balls: 0 } : { runs: 0, balls: 0 };
   const nonStrikerStats = nonStrikerId ? playerStatsMap[nonStrikerId] || { runs: 0, balls: 0 } : { runs: 0, balls: 0 };

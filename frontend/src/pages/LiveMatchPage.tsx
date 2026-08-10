@@ -158,17 +158,17 @@ export const LiveMatchPage: React.FC = () => {
   const activeBowlersList: string[] = Array.from(activeBowlersSet);
 
   const lastBall = activeInnings?.balls && activeInnings.balls.length > 0 ? activeInnings.balls[activeInnings.balls.length - 1] : null;
-  const strikerId = lastBall?.strikerId || (battingTeam.players && battingTeam.players[0]?.id) || 'player-1';
-  const nonStrikerId = lastBall?.nonStrikerId || (battingTeam.players && battingTeam.players[1]?.id) || 'player-2';
-  const bowlerId = lastBall?.bowlerId || (bowlingTeam.players && bowlingTeam.players[0]?.id) || 'bowler-1';
+  const strikerId = activeInnings?.currentStrikerId || lastBall?.strikerId || '';
+  const nonStrikerId = activeInnings?.currentNonStrikerId || lastBall?.nonStrikerId || '';
+  const bowlerId = activeInnings?.currentBowlerId || lastBall?.bowlerId || '';
 
-  const strikerPlayer = getPlayerData(strikerId, lastBall?.striker, (battingTeam.players && battingTeam.players[0]?.name) || 'Striker');
-  const nonStrikerPlayer = getPlayerData(nonStrikerId, undefined, (battingTeam.players && battingTeam.players[1]?.name) || 'Non-Striker');
-  const activeBowlerPlayer = getPlayerData(bowlerId, lastBall?.bowler, (bowlingTeam.players && bowlingTeam.players[0]?.name) || 'Bowler');
+  const strikerPlayer = strikerId ? getPlayerData(strikerId, lastBall?.striker, undefined) : null;
+  const nonStrikerPlayer = nonStrikerId ? getPlayerData(nonStrikerId, undefined, undefined) : null;
+  const activeBowlerPlayer = bowlerId ? getPlayerData(bowlerId, lastBall?.bowler, undefined) : null;
 
-  const strikerStats = playerStatsMap[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
-  const nonStrikerStats = playerStatsMap[nonStrikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
-  const activeBowlerStats = bowlerStatsMap[bowlerId] || { balls: 0, runsConceded: 0, wickets: 0 };
+  const strikerStats = strikerId ? playerStatsMap[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : null;
+  const nonStrikerStats = nonStrikerId ? playerStatsMap[nonStrikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 } : null;
+  const activeBowlerStats = bowlerId ? bowlerStatsMap[bowlerId] || { balls: 0, runsConceded: 0, wickets: 0 } : null;
 
   // Run rate calculations
   const totalOvers = activeInnings ? activeInnings.overs : 0;
