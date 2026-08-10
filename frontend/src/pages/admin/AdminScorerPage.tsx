@@ -560,50 +560,22 @@ export const AdminScorerPage: React.FC = () => {
         </div>
       )}
 
-      {/* Toss Status & Control Bar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-950/80 border border-amber-600/40 text-amber-400 font-bold flex items-center justify-center text-lg">
-            🪙
-          </div>
-          <div>
-            <div className="text-xs text-amber-400 font-extrabold uppercase">Toss Details</div>
-            <div className="text-sm font-heading font-black text-white">
-              {match.tossWinnerId ? (
-                <>
-                  {match.tossWinnerId === match.homeTeamId ? match.homeTeam.name : match.awayTeam.name} won the toss & elected to {match.tossDecision || 'BAT'}
-                </>
-              ) : (
-                'Toss decision pending'
-              )}
-            </div>
-          </div>
+      {/* Read-Only Toss Status Banner */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex items-center gap-3">
+        <div className="w-10 h-10 rounded-2xl bg-amber-950/80 border border-amber-600/40 text-amber-400 font-bold flex items-center justify-center text-lg shrink-0">
+          🪙
         </div>
-
-        <div className="flex items-center gap-2 text-xs">
-          <select
-            value={match.tossWinnerId || match.homeTeamId}
-            onChange={(e) => {
-              const updatedMatch: Match = { ...match, tossWinnerId: e.target.value };
-              saveUpdatedMatch(updatedMatch);
-            }}
-            className="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-bold"
-          >
-            <option value={match.homeTeamId}>Toss Winner: {match.homeTeam.name}</option>
-            <option value={match.awayTeamId}>Toss Winner: {match.awayTeam.name}</option>
-          </select>
-
-          <select
-            value={match.tossDecision || 'BAT'}
-            onChange={(e) => {
-              const updatedMatch: Match = { ...match, tossDecision: e.target.value as any };
-              saveUpdatedMatch(updatedMatch);
-            }}
-            className="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-bold"
-          >
-            <option value="BAT">Elected to BAT</option>
-            <option value="BOWL">Elected to BOWL</option>
-          </select>
+        <div>
+          <div className="text-xs text-amber-400 font-extrabold uppercase tracking-wider">Official Toss Result</div>
+          <div className="text-sm font-heading font-black text-white">
+            {match.tossWinnerId ? (
+              <>
+                <strong>{match.tossWinnerId === match.homeTeamId ? match.homeTeam.name : match.awayTeam.name}</strong> won the toss & elected to <strong>{match.tossDecision || 'BAT'}</strong> first.
+              </>
+            ) : (
+              <span className="text-slate-400 font-normal italic">Toss decision pending</span>
+            )}
+          </div>
         </div>
       </div>
       {match.status === 'UPCOMING' && (
@@ -660,11 +632,10 @@ export const AdminScorerPage: React.FC = () => {
                 onChange={(e) => setStrikerId(e.target.value)}
                 className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-bold"
               >
-                {batTeamPlayers.length === 0 ? <option value="">No players added to team</option> : (
-                  batTeamPlayers.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name} (#{p.jerseyNumber || '-'})</option>
-                  ))
-                )}
+                <option value="">-- Select Striker --</option>
+                {batTeamPlayers.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name} (#{p.jerseyNumber || '-'})</option>
+                ))}
               </select>
             </div>
 
@@ -677,8 +648,9 @@ export const AdminScorerPage: React.FC = () => {
                   onChange={(e) => setNonStrikerId(e.target.value)}
                   className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-bold"
                 >
+                  <option value="">-- Select Non-Striker --</option>
                   {batTeamPlayers.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                    <option key={p.id} value={p.id}>{p.name} (#{p.jerseyNumber || '-'})</option>
                   ))}
                 </select>
                 <button
@@ -700,11 +672,10 @@ export const AdminScorerPage: React.FC = () => {
                 onChange={(e) => setBowlerId(e.target.value)}
                 className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-bold"
               >
-                {bowlTeamPlayers.length === 0 ? <option value="">No bowlers added to team</option> : (
-                  bowlTeamPlayers.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))
-                )}
+                <option value="">-- Select Bowler --</option>
+                {bowlTeamPlayers.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name} (#{p.jerseyNumber || '-'})</option>
+                ))}
               </select>
             </div>
           </div>
