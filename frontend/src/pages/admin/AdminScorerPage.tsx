@@ -236,16 +236,23 @@ export const AdminScorerPage: React.FC = () => {
     setNonStrikerId(temp);
   };
 
-  const handleRecordBall = () => {
+  const handleRecordBall = (
+    overrideRuns?: number,
+    overrideExtra?: 'NONE' | 'WIDE' | 'NO_BALL' | 'BYE' | 'LEG_BYE',
+    overrideWicket?: boolean
+  ) => {
     if (!activeInnings) return alert('No active innings available!');
     setPostingBall(true);
 
-    let runs = selectedRuns;
-    let wide = extraType === 'WIDE' ? 1 : 0;
-    let noBall = extraType === 'NO_BALL' ? 1 : 0;
+    let runs = overrideRuns !== undefined ? overrideRuns : selectedRuns;
+    let currentExtraType = overrideExtra !== undefined ? overrideExtra : extraType;
+    let currentIsWicket = overrideWicket !== undefined ? overrideWicket : isWicket;
+
+    let wide = currentExtraType === 'WIDE' ? 1 : 0;
+    let noBall = currentExtraType === 'NO_BALL' ? 1 : 0;
     let totalBallRuns = runs + wide + noBall;
 
-    let isLegalBall = extraType !== 'WIDE' && extraType !== 'NO_BALL';
+    let isLegalBall = currentExtraType !== 'WIDE' && currentExtraType !== 'NO_BALL';
 
     // Calculate overs increments
     let overNum = Math.floor(activeInnings.overs);
@@ -260,7 +267,7 @@ export const AdminScorerPage: React.FC = () => {
     }
     let newOversFormatted = parseFloat(`${overNum}.${ballsInOver}`);
 
-    let newWickets = activeInnings.wickets + (isWicket ? 1 : 0);
+    let newWickets = activeInnings.wickets + (currentIsWicket ? 1 : 0);
     let newTotalRuns = activeInnings.totalRuns + totalBallRuns;
 
     const striker = allPlayers.find((p) => p.id === strikerId);
@@ -275,11 +282,11 @@ export const AdminScorerPage: React.FC = () => {
       strikerId,
       nonStrikerId,
       runs,
-      extraType,
+      extraType: currentExtraType,
       extraRuns: wide + noBall,
-      isWicket,
-      wicketType: isWicket ? wicketType : undefined,
-      commentary: commentaryText || `${runs} runs scored by ${striker?.name || 'Batsman'}`,
+      isWicket: currentIsWicket,
+      wicketType: currentIsWicket ? wicketType : undefined,
+      commentary: commentaryText || `${runs} run${runs !== 1 ? 's' : ''} scored by ${striker?.name || 'Batsman'}`,
       timestamp: new Date().toISOString(),
       striker,
       bowler,
@@ -306,8 +313,18 @@ export const AdminScorerPage: React.FC = () => {
       innings: updatedInningsList,
     };
 
-    // Auto strike swap on odd runs
+    // Auto strike swap logic:
+    let swapCount = 0;
+    // 1. Odd runs swap (1, 3, 5 runs)
     if (runs % 2 !== 0) {
+      swapCount++;
+    }
+    // 2. Over end swap (6th legal ball of over)
+    if (isLegalBall && ballsInOver === 0 && overNum > 0) {
+      swapCount++;
+    }
+
+    if (swapCount % 2 !== 0) {
       handleSwapStrikers();
     }
 
@@ -323,10 +340,10 @@ export const AdminScorerPage: React.FC = () => {
         strikerId,
         nonStrikerId,
         runs,
-        extraType,
+        extraType: currentExtraType,
         extraRuns: wide + noBall,
-        isWicket,
-        wicketType: isWicket ? wicketType : undefined,
+        isWicket: currentIsWicket,
+        wicketType: currentIsWicket ? wicketType : undefined,
         commentary: commentaryText || `${runs} runs scored by ${striker?.name || 'Batsman'}`,
       }),
     }).catch(() => {});
@@ -569,90 +586,103 @@ export const AdminScorerPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick Run Selection */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-slate-300 uppercase">Runs Scored on Ball:</label>
+          {/* ⚡ 1-TAP QUICK SCORING KEYPAD */}
+          <div className="space-y-3 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-black text-amber-400 uppercase tracking-wider">
+                ⚡ 1-TAP QUICK SCORING (TAP BUTTON TO RECORD BALL)
+              </label>
+              <span className="text-[10px] text-slate-400 font-bold">Auto-Swaps Strike on Odd Runs & Over Completion</span>
+            </div>
+
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5 sm:gap-3">
               {[0, 1, 2, 3, 4, 6].map((run) => (
                 <button
                   key={run}
                   type="button"
-                  onClick={() => setSelectedRuns(run)}
-                  className={`py-3.5 sm:py-3 rounded-2xl font-black text-base sm:text-lg transition-all border ${
-                    selectedRuns === run
-                      ? run === 6
-                        ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/30 scale-105'
-                        : run === 4
-                        ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-lg shadow-emerald-500/30 scale-105'
-                        : 'bg-slate-700 text-white border-slate-600 scale-105'
-                      : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800'
+                  disabled={postingBall}
+                  onClick={() => handleRecordBall(run)}
+                  className={`py-4 sm:py-4 rounded-2xl font-black text-lg sm:text-xl transition-all border shadow-md active:scale-95 flex flex-col items-center justify-center ${
+                    run === 6
+                      ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-400 shadow-amber-500/30'
+                      : run === 4
+                      ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 border-emerald-400 shadow-emerald-500/30'
+                      : run === 0
+                      ? 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700'
+                      : 'bg-slate-800 hover:bg-slate-700 text-white border-slate-600'
                   }`}
                 >
-                  {run}
+                  <span>{run}</span>
+                  <span className="text-[9px] font-bold uppercase opacity-80 mt-0.5">
+                    {run === 0 ? 'Dot' : run === 4 ? 'FOUR' : run === 6 ? 'SIX' : `${run} Run`}
+                  </span>
                 </button>
               ))}
             </div>
-          </div>
 
-          {/* Extra Types */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-slate-300 uppercase">Extras / Penalties:</label>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
-              {(['NONE', 'WIDE', 'NO_BALL', 'BYE', 'LEG_BYE'] as const).map((ex) => (
-                <button
-                  key={ex}
-                  type="button"
-                  onClick={() => setExtraType(ex)}
-                  className={`py-2.5 rounded-xl font-bold border transition-all ${
-                    extraType === ex
-                      ? 'bg-amber-950 text-amber-400 border-amber-700 font-extrabold'
-                      : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800'
-                  }`}
-                >
-                  {ex.replace('_', ' ')}
-                </button>
-              ))}
+            {/* Quick Extras & Wicket Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs pt-2">
+              <button
+                type="button"
+                disabled={postingBall}
+                onClick={() => handleRecordBall(0, 'WIDE')}
+                className="py-3 rounded-xl font-black bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-800/80 shadow"
+              >
+                +1 WIDE
+              </button>
+              <button
+                type="button"
+                disabled={postingBall}
+                onClick={() => handleRecordBall(0, 'NO_BALL')}
+                className="py-3 rounded-xl font-black bg-purple-950/80 hover:bg-purple-900 text-purple-300 border border-purple-800/80 shadow"
+              >
+                +1 NO BALL
+              </button>
+              <button
+                type="button"
+                disabled={postingBall}
+                onClick={() => handleRecordBall(1, 'BYE')}
+                className="py-3 rounded-xl font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800"
+              >
+                1 BYE
+              </button>
+              <button
+                type="button"
+                disabled={postingBall}
+                onClick={() => handleRecordBall(1, 'LEG_BYE')}
+                className="py-3 rounded-xl font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800"
+              >
+                1 LEG BYE
+              </button>
+              <button
+                type="button"
+                disabled={postingBall}
+                onClick={() => {
+                  setIsWicket(true);
+                  setShowWicketModal(true);
+                }}
+                className="py-3 rounded-xl font-black bg-red-600 hover:bg-red-500 text-white border border-red-500 shadow-md col-span-2 sm:col-span-1"
+              >
+                OUT (WICKET) 🚨
+              </button>
             </div>
           </div>
 
-          {/* Wicket Toggle Button */}
-          <div>
-            <button
-              type="button"
-              onClick={() => {
-                setIsWicket(!isWicket);
-                if (!isWicket) setShowWicketModal(true);
-              }}
-              className={`w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider border transition-all ${
-                isWicket
-                  ? 'bg-red-600 text-white border-red-500 shadow-lg shadow-red-500/30'
-                  : 'bg-slate-950 text-red-400 border-slate-800 hover:bg-red-950/40'
-              }`}
-            >
-              {isWicket ? `OUT (${wicketType})` : 'Mark as Wicket (OUT)'}
-            </button>
-          </div>
-
-          {/* Optional Commentary */}
-          <div>
+          {/* Custom Ball Builder / Optional Note */}
+          <div className="p-3 bg-slate-950 border border-slate-800 rounded-2xl flex flex-col sm:flex-row items-center gap-3 text-xs">
             <input
               type="text"
               placeholder="Custom commentary note (optional)..."
               value={commentaryText}
               onChange={(e) => setCommentaryText(e.target.value)}
-              className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
+              className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
             />
+            {isWicket && (
+              <span className="px-3 py-2 bg-red-950 text-red-300 font-bold rounded-xl border border-red-800 shrink-0">
+                Wicket: {wicketType}
+              </span>
+            )}
           </div>
-
-          {/* Record Ball Submit Button */}
-          <button
-            type="button"
-            disabled={postingBall}
-            onClick={handleRecordBall}
-            className="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black rounded-2xl text-sm shadow-xl shadow-emerald-500/25 flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5"
-          >
-            {postingBall ? 'Recording Ball...' : 'RECORD BALL & UPDATE SCOREBOARD'} <Play className="w-4 h-4 fill-current" />
-          </button>
         </div>
       )}
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Camera, Video, Play, Square, Settings, Copy, Check, ArrowLeft, RefreshCw, Youtube, Facebook, Shield, Circle, Zap, Lock, Unlock, Edit3, Save } from 'lucide-react';
+import { Camera, Video, Play, Square, Settings, Copy, Check, ArrowLeft, RefreshCw, Youtube, Facebook, Shield, Circle, Zap, Lock, Unlock, Edit3, Save, BarChart3 } from 'lucide-react';
 import { Match } from '../../types';
 import { apiRequest } from '../../services/api';
 import { storage } from '../../services/storage';
@@ -222,6 +222,33 @@ export const AdminStreamerPage: React.FC = () => {
   const bowlerOversStr = `${Math.floor(activeBowlerStats.balls / 6)}.${activeBowlerStats.balls % 6}`;
   const recentBalls = activeInnings?.balls && activeInnings.balls.length > 0 ? activeInnings.balls.slice(-6) : [];
 
+  // Over-by-Over Graph Calculations
+  const overStatsMap: Record<number, { runs: number; wickets: number; fours: number; sixes: number }> = {};
+  let totalFours = 0;
+  let totalSixes = 0;
+
+  if (activeInnings && activeInnings.balls) {
+    activeInnings.balls.forEach((b) => {
+      const ov = (b.overNumber || 0) + 1;
+      if (!overStatsMap[ov]) overStatsMap[ov] = { runs: 0, wickets: 0, fours: 0, sixes: 0 };
+      const wide = b.extraType === 'WIDE' ? 1 : 0;
+      const noBall = b.extraType === 'NO_BALL' ? 1 : 0;
+      overStatsMap[ov].runs += b.runs + wide + noBall;
+      if (b.isWicket) overStatsMap[ov].wickets += 1;
+      if (b.runs === 4) {
+        overStatsMap[ov].fours += 1;
+        totalFours += 1;
+      }
+      if (b.runs === 6) {
+        overStatsMap[ov].sixes += 1;
+        totalSixes += 1;
+      }
+    });
+  }
+
+  const overNumbers = Object.keys(overStatsMap).map(Number).sort((a, b) => a - b);
+  const maxOverRuns = Math.max(...Object.values(overStatsMap).map((o) => o.runs), 15);
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* Top Banner */}
@@ -243,6 +270,85 @@ export const AdminStreamerPage: React.FC = () => {
           <Link to={`/admin/scorer/${match.id}`} className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5">
             <Zap className="w-4 h-4" /> Scorer Console
           </Link>
+        </div>
+      </div>
+
+      {/* 📊 MATCH SUMMARY & OVERS RUN GRAPH CARD */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div>
+            <span className="text-xs font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+              <BarChart3 className="w-4 h-4 text-amber-400" /> Live Match Performance & Overs Analytics
+            </span>
+            <h3 className="text-base font-heading font-black text-white mt-0.5">
+              {battingTeam.name} Innings Breakdown ({activeInnings?.totalRuns || 0}/{activeInnings?.wickets || 0} in {activeInnings?.overs || 0} ov)
+            </h3>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-mono font-bold">
+            <span className="px-3 py-1 bg-emerald-950 text-emerald-400 border border-emerald-800 rounded-xl">
+              CRR: {(activeInnings?.overs && activeInnings.overs > 0 ? (activeInnings.totalRuns / (Math.floor(activeInnings.overs) + (activeInnings.overs % 1) * (10 / 6))).toFixed(2) : '0.00')}
+            </span>
+            <span className="px-3 py-1 bg-amber-950 text-amber-400 border border-amber-800 rounded-xl">
+              4s: {totalFours} | 6s: {totalSixes}
+            </span>
+          </div>
+        </div>
+
+        {/* Overs Run Bar Chart Visual Graph */}
+        <div className="space-y-2 pt-1">
+          <div className="text-[11px] font-bold text-slate-400 uppercase flex items-center justify-between">
+            <span>Runs Per Over Bar Chart</span>
+            <span className="text-[10px] text-slate-500">Height = Runs Scored • 🔴 Red Badge = Wicket</span>
+          </div>
+
+          {overNumbers.length > 0 ? (
+            <div className="h-44 bg-slate-950 p-4 rounded-2xl border border-slate-800 flex items-end justify-start gap-3 overflow-x-auto">
+              {overNumbers.map((ovNum) => {
+                const stats = overStatsMap[ovNum];
+                const heightPercent = Math.min(100, Math.max(15, (stats.runs / maxOverRuns) * 100));
+
+                return (
+                  <div key={ovNum} className="flex flex-col items-center gap-1 min-w-[36px] group relative">
+                    {/* Wicket Indicator Badge */}
+                    {stats.wickets > 0 && (
+                      <span className="w-4 h-4 rounded-full bg-red-600 text-white font-mono font-black text-[9px] flex items-center justify-center shadow-md animate-bounce">
+                        W
+                      </span>
+                    )}
+
+                    {/* Run Count Hover Label */}
+                    <span className="text-[11px] font-mono font-black text-amber-300">
+                      {stats.runs}
+                    </span>
+
+                    {/* Vertical Graph Bar */}
+                    <div
+                      style={{ height: `${heightPercent}%` }}
+                      className={`w-6 rounded-t-xl transition-all duration-300 shadow-md ${
+                        stats.wickets > 0
+                          ? 'bg-gradient-to-t from-red-800 to-red-500 border-t border-red-400'
+                          : stats.runs >= 10
+                          ? 'bg-gradient-to-t from-amber-600 to-yellow-400 border-t border-yellow-300'
+                          : stats.runs >= 6
+                          ? 'bg-gradient-to-t from-emerald-600 to-teal-400 border-t border-teal-300'
+                          : 'bg-gradient-to-t from-slate-800 to-cyan-600 border-t border-cyan-400'
+                      }`}
+                    ></div>
+
+                    {/* Over Number Label */}
+                    <span className="text-[10px] font-mono font-bold text-slate-400 border-t border-slate-800 pt-1 w-full text-center">
+                      Ov {ovNum}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="h-28 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-center text-xs text-slate-500 font-bold italic">
+              No overs completed yet. Start scoring on Scorer Console to build the overs graph!
+            </div>
+          )}
         </div>
       </div>
 
